@@ -4,7 +4,8 @@ import networkx as nx
 from uuid import uuid4
 from PIL import Image
 from typing import Iterable, List, Dict
-from .models import TypeReturn, ReaderImageOutput, GraphCollatorOutput
+from .models import ReaderImageOutput, GraphCollatorOutput
+from ..models import TypeReturn
 from itertools import combinations
 from tqdm.notebook import tqdm
 

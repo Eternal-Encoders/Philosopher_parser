@@ -86,7 +86,7 @@ class FileReader(ModelWrapper):
         super().__init__(model_path)
         self.md = MarkItDown()
     
-    def __set_model(self):
+    def set_model(self):
         self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
             self.model_path,
             dtype='auto',
@@ -102,7 +102,7 @@ class FileReader(ModelWrapper):
             fullgraph=True
         )
     
-    def __dispatch_model(self):
+    def dispatch_model(self):
         del self.model, self.processor
         gc.collect()
         torch.cuda.empty_cache()

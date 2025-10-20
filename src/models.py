@@ -1,6 +1,7 @@
+import numpy as np
 from enum import Enum
-from PIL.Image import Image
-from dataclasses import dataclass
+from typing import List
+from pydantic import BaseModel
 
 
 class TypeReturn(Enum):
@@ -12,27 +13,14 @@ class TypeReturn(Enum):
     FOOTNOTE='footnote'
 
 
-class ModelWrapper:
-    def __init__(self, model_path: str) -> None:
-        self.model_path = model_path
-        self.model = None
-
-    def __set_model(self):
-        raise NotImplementedError()
-
-    def __dispatch_model(self):
-        raise NotImplementedError()
+class RAGModel(BaseModel):
+    query: str
 
 
-@dataclass
-class ReaderImageOutput:
-    image_name: str
-    image: Image
-    image_uri: str
-
-
-@dataclass
-class GraphCollatorOutput:
-    obj_type: TypeReturn
-    text: str
-    image: Image | None
+class Parser:
+    def retrive_docs(
+        self,
+        query: str | List[str] | np.ndarray,
+        file_path: str | None=None
+    ) -> List[str]:
+        raise NotImplementedError('Parser must implement this method one way or another')

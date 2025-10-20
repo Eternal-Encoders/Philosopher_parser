@@ -6,8 +6,10 @@ import numpy as np
 import networkx as nx
 from .file_reader import FileReader
 from .graph_parser import GraphParser
-from .models  import TypeReturn, ModelWrapper
+from .models  import ModelWrapper
+from ..models import TypeReturn
 from .utils import use_model_decorator
+from ..models import Parser
 from sentence_transformers import SentenceTransformer
 from typing import List, Tuple
 
@@ -94,7 +96,7 @@ def get_document(graph, node_ids: str):
     '''.replace('\t', '')
 
 
-class Retriver(ModelWrapper):
+class GraphRetriver(ModelWrapper, Parser):
     def __init__(
         self,
         model_path='google/embeddinggemma-300m'
@@ -108,7 +110,7 @@ class Retriver(ModelWrapper):
         self.doc_emb: np.ndarray | None = None
         self.node_ids: np.ndarray | None = None
     
-    def __set_model(self):
+    def set_model(self):
         self.model = SentenceTransformer(
             self.model_path,
             model_kwargs={
@@ -122,7 +124,7 @@ class Retriver(ModelWrapper):
             fullgraph=True
         )
     
-    def __dispatch_model(self):
+    def dispatch_model(self):
         del self.model
         gc.collect()
         torch.cuda.empty_cache()
@@ -192,7 +194,6 @@ class Retriver(ModelWrapper):
         self.doc_emb = emb
         self.node_ids = node_ids
         
-
     def retrive_docs(
         self,
         query: str | List[str] | np.ndarray,
@@ -209,10 +210,10 @@ class Retriver(ModelWrapper):
         assert self.node_ids is not None
 
         sims = self.doc_emb @ query
-        top_k_ids = np.argsort(sims).reshape(-1)[::-1][:10]
+        top_k_ids = np.argsort(sims).reshape(-1)[::-1][:5]
         top_k = self.node_ids[top_k_ids]
 
         return [
-            get_document(self.graph, e)
+            get_document(self.graph, e).strip()
             for e in top_k
         ]
