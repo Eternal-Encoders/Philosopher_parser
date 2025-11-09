@@ -1,5 +1,6 @@
+import re
 import numpy as np
-from .models import Parser
+from .models import Parser, TypeReturn
 from typing import List
 
 
@@ -15,3 +16,17 @@ class Connector:
         res = self.parser.retrive_docs(query, file_path)
 
         return res
+    
+    def get_questions(
+        self
+    ):
+        lists = {
+            re.sub(r'^(\d+.)+ ', '', e)
+            for es in self.parser.get_data_by_neighbour(
+                TypeReturn.LIST,
+                lambda node: 'вопрос' in node['text'].lower() and '**' in node['text']
+            )
+            for e in es.split('\n')
+        }
+
+        return lists
