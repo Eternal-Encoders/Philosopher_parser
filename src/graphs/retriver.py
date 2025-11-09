@@ -1,17 +1,25 @@
 import gc
 import os
+
 import torch
 import pickle
 import numpy as np
 import networkx as nx
+from PIL import Image
 from .file_reader import FileReader
 from .graph_parser import GraphParser
 from .models  import ModelWrapper
-from ..models import TypeReturn
+from ..models import TypeReturn, Parser
 from .utils import use_model_decorator
-from ..models import Parser
 from sentence_transformers import SentenceTransformer
 from typing import List, Tuple
+from huggingface_hub import login
+from dotenv import load_dotenv
+
+
+load_dotenv()
+login(token=os.getenv('HUGGINGFACE_HUB_TOKEN'))
+
 
 collaters = [
     (
@@ -104,7 +112,7 @@ class GraphRetriver(ModelWrapper, Parser):
         super().__init__(model_path)
 
         self.file_reader = FileReader()
-        self.graph_parser = GraphParser()
+        self.graph_parser = GraphParser('__output__/binaries')
 
         self.graph: nx.Graph | None = None
         self.doc_emb: np.ndarray | None = None
@@ -125,22 +133,29 @@ class GraphRetriver(ModelWrapper, Parser):
         )
     
     def dispatch_model(self):
-        del self.model
+        try:
+            del self.model
+        except Exception as e:
+            print(e)
         gc.collect()
         torch.cuda.empty_cache()
 
     def load_graph(self, f_path: str):
-        graph_path = f'{f_path}/graph.pkl'
-        emb_path = f'{f_path}/docs.pkl'
-        ids_path = f'{f_path}/ids.pkl'
+        graph_path = os.path.join(f_path, 'graph.pkl')
+        emb_path = os.path.join(f_path, 'docs.pkl')
+        ids_path = os.path.join(f_path, 'ids.pkl')
+
+        if not (os.path.exists(graph_path) and os.path.exists(emb_path) and os.path.exists(ids_path)):
+            print(f"Бинарные файлы графа не найдены в {f_path}. Инициализация графа...")
+            self.prepare_doc_file(f_path)
+            return
 
         with open(graph_path, 'rb') as f:
             self.graph = pickle.load(f)
-        if os.path.exists(emb_path) and os.path.exists(ids_path):
-            with open(emb_path, 'rb') as f:
-                self.doc_emb = pickle.load(f)
-            with open(ids_path, 'rb') as f:
-                self.node_ids = pickle.load(f)
+        with open(emb_path, 'rb') as f:
+            self.doc_emb = pickle.load(f)
+        with open(ids_path, 'rb') as f:
+            self.node_ids = pickle.load(f)
 
     @use_model_decorator
     def vectorize_graph(self, graph: nx.Graph) -> Tuple[np.ndarray, np.ndarray]:
@@ -149,7 +164,7 @@ class GraphRetriver(ModelWrapper, Parser):
 
         for k, v in dict(graph.nodes.data()).items():
             node_ids.append(k)
-            node_texts.append(v['text'])
+            node_texts.append(v.get('summary') or v['text'])
 
         node_ids= np.array(node_ids)
         node_texts= np.array(node_texts)
@@ -183,16 +198,45 @@ class GraphRetriver(ModelWrapper, Parser):
     ):
         assert (emb is not None) == (node_ids is not None)
 
-        txt, imgs = self.file_reader.read_markdown(file_path)
+        graph_dir = os.path.dirname(file_path)
+        emb_path = os.path.join(graph_dir, 'docs.pkl')
+        ids_path = os.path.join(graph_dir, 'ids.pkl')
+
+        # Check if embeddings already exist on disk
+        if os.path.exists(emb_path) and os.path.exists(ids_path):
+            with open(emb_path, 'rb') as f:
+                self.doc_emb = pickle.load(f)
+            with open(ids_path, 'rb') as f:
+                self.node_ids = pickle.load(f)
+            print(f"Эмбеддинги и ID узлов загружены из {emb_path} и {ids_path}")
+            
+            # Load graph as well if embeddings are loaded
+            graph_path = os.path.join(graph_dir, 'graph.pkl')
+            if os.path.exists(graph_path):
+                with open(graph_path, 'rb') as f:
+                    self.graph = pickle.load(f)
+                print(f"Граф загружен из {graph_path}")
+            return # Exit if embeddings are loaded
+
+        txt, imgs = self.file_reader.read_markdown('__output__/study_fies.md')
         graph = self.graph_parser.text2graph(txt, imgs)
         self.graph_parser.add_edges(graph)
 
         if emb is None or node_ids is None:
+            self.set_model()
             emb, node_ids = self.vectorize_graph(graph)
+            self.dispatch_model()
 
         self.graph = graph
         self.doc_emb = emb
         self.node_ids = node_ids
+
+        os.makedirs(graph_dir, exist_ok=True)
+        with open(emb_path, 'wb') as f:
+            pickle.dump(self.doc_emb, f)
+        with open(ids_path, 'wb') as f:
+            pickle.dump(self.node_ids, f)
+        print(f"Эмбеддинги и ID узлов сохранены в {emb_path} и {ids_path}")
         
     def retrive_docs(
         self,
@@ -202,12 +246,12 @@ class GraphRetriver(ModelWrapper, Parser):
         if not isinstance(query, np.ndarray):
             query = self.vectorize_search(query)
         if self.graph is None:
-            assert file_path is not None
+            assert file_path is not None, "file_path must be provided if graph is not loaded."
             self.prepare_doc_file(file_path)
         
-        assert self.graph is not None
-        assert self.doc_emb is not None
-        assert self.node_ids is not None
+        assert self.graph is not None, "Graph is not loaded after prepare_doc_file."
+        assert self.doc_emb is not None, "Document embeddings are not loaded after prepare_doc_file."
+        assert self.node_ids is not None, "Node IDs are not loaded after prepare_doc_file."
 
         sims = self.doc_emb @ query
         top_k_ids = np.argsort(sims).reshape(-1)[::-1][:5]

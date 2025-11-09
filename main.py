@@ -1,10 +1,11 @@
 from fastapi import FastAPI
 from src import GraphRetriver, Connector, RAGModel
+import os
 
 app = FastAPI()
 
 parser = GraphRetriver()
-parser.load_graph('./__output__/binaries')
+parser.load_graph('__output__/binaries')
 
 conn = Connector(parser)
 

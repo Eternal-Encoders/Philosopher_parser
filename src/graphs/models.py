@@ -27,3 +27,4 @@ class GraphCollatorOutput:
     obj_type: TypeReturn
     text: str
     image: Image | None
+    summary: str | None = None
