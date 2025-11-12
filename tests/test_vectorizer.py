@@ -24,12 +24,12 @@ def test_embed_single():
     print(out)
 
 
-def test_ocr():
+def test_embed():
     out = vectorizer.encode(texts)
     
     assert isinstance(out, np.ndarray)
     assert len(out.shape) == 2
-    assert out.shape[1] == len(texts)
-    assert out.shape[0] >= 200
+    assert out.shape[0] == len(texts)
+    assert out.shape[1] >= 200
 
     print(out)

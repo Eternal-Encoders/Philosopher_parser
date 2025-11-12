@@ -26,7 +26,7 @@ class VectorizerExec():
         name_or_path: str,
     ) -> None:
         self.client = OpenAI(
-            base_url='https://dummy/api/v1',
+            base_url='https://roaoch-vectorizer.hf.space/v1',
             api_key=hf_key,
         )
         self.name_or_path = name_or_path
@@ -48,7 +48,7 @@ class VectorizerExec():
             model=self.name_or_path
         )
 
-        return np.array((
+        return np.array([
             o.embedding
             for o in out.data
-        ))
+        ])
