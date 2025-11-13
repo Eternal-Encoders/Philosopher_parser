@@ -2,7 +2,7 @@ import os
 import dotenv
 from fastapi import FastAPI
 from src import Retriver, Connector, RAGModel
-from src.model_inf import VectorizerExec, OcrExec
+from src.model_inf import VectorizerExec, OcrExec, SummaryExec
 
 dotenv.load_dotenv()
 app = FastAPI()
@@ -15,11 +15,16 @@ vectorizer = VectorizerExec(
     os.environ['HUGGINGFACE_HUB_TOKEN'],
     os.environ['VECTORIZER_MODEL']
 )
+summary_gen = SummaryExec(
+    os.environ['OPENROUTER_API_KEY'],
+    os.environ['SUMMARY_MODEL']
+)
 
 parser = Retriver(
     encode_q_fn=vectorizer.encode,
     encode_d_fn=vectorizer.encode,
-    ocr_fn=ocr.ocr
+    ocr_fn=ocr.ocr,
+    gen_summary_fn=summary_gen.generate_summary_text
 )
 parser.load_graph('/__output__/binaries')
 

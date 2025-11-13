@@ -4,15 +4,9 @@ import numpy as np
 import networkx as nx
 from .file_reader import FileReader
 from .graph_parser import GraphParser
-from ..models import TypeReturn
-from ..models import Parser, Parser
+from ..models import Parser, Parser, TypeReturn
 from typing import Tuple, Generator, Callable, Any, List
 from PIL import Image
-from huggingface_hub import login
-from dotenv import load_dotenv
-
-load_dotenv()
-login(token=os.getenv('HUGGINGFACE_HUB_TOKEN'))
 
 collaters = [
     (
@@ -71,13 +65,14 @@ class Retriver(Parser):
         self,
         encode_q_fn: Callable[[list[str]], np.ndarray],
         encode_d_fn: Callable[[list[str]], np.ndarray],
-        ocr_fn: Callable[[list[Image.Image]], list[str]]
+        ocr_fn: Callable[[list[Image.Image]], list[str]],
+        gen_summary_fn: Callable[[str], str]
     ) -> None:
         self.encode_q_fn = encode_q_fn
         self.encode_d_fn = encode_d_fn
 
         self.file_reader = FileReader(ocr_fn)
-        self.graph_parser = GraphParser('__output__/binaries')
+        self.graph_parser = GraphParser('__output__/binaries', gen_summary_fn)
 
         self.graph: nx.Graph | None = None
         self.doc_emb: np.ndarray | None = None
