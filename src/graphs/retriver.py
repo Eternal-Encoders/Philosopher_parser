@@ -1,25 +1,19 @@
-import gc
 import os
-
-import torch
 import pickle
 import numpy as np
 import networkx as nx
-from PIL import Image
 from .file_reader import FileReader
 from .graph_parser import GraphParser
-from .models  import ModelWrapper
-from ..models import TypeReturn, Parser
-from .utils import use_model_decorator
-from sentence_transformers import SentenceTransformer
-from typing import List, Tuple
+from ..models import TypeReturn
+from ..models import Parser, Parser
+from typing import Tuple, Generator, Callable, Any, List
+from PIL import Image
 from huggingface_hub import login
 from dotenv import load_dotenv
 
 
 load_dotenv()
 login(token=os.getenv('HUGGINGFACE_HUB_TOKEN'))
-
 
 collaters = [
     (
@@ -60,86 +54,36 @@ collaters = [
 ]
 
 
-def __get_linked_type(graph: nx.Graph, node: str, t: TypeReturn):
-    res = []
-    visited = set()
-    for linked_node in graph[node]:
-        linked_data = graph.nodes[linked_node]
-        if linked_data['node_type'] == t and linked_data['text'] not in visited:
-            res.append(linked_data)
-            visited.add(linked_data['text'])
-    return res
+class Retriver(Parser):
+    @staticmethod
+    def get_ids_text(graph: nx.Graph) -> Tuple[list[str], np.ndarray]:
+        node_ids = []
+        node_texts = []
 
+        for k, v in dict(graph.nodes.data()).items():
+            node_ids.append(k)
+            node_texts.append(v['text'])
 
-def __collate_context(graph, node_ids: str):
-    node = graph.nodes[node_ids]
-    res = []
+        node_ids= np.array(node_ids)
 
-    for tag, type_ret, statement in collaters:
-        linked_data = __get_linked_type(graph, node_ids, type_ret)
+        return node_texts, node_ids
 
-        if statement is not None:
-            linked_data = [
-                l
-                for l in linked_data
-                if statement(node, l)
-            ]
-
-        linked_data = '\n'.join((
-            l['text']
-            for l in linked_data
-        ))
-        res.append(f'<{tag}>\n{linked_data}\n</{tag}>')
-    return '\n'.join(res)
-
-
-def get_document(graph, node_ids: str):
-        return f'''
-        <context>
-        {__collate_context(graph, node_ids)}
-        </context>
-        <text>
-        {graph.nodes[node_ids]['text']}
-        </text>
-    '''.replace('\t', '')
-
-
-class GraphRetriver(ModelWrapper, Parser):
     def __init__(
         self,
-        model_path='google/embeddinggemma-300m'
+        encode_q_fn: Callable[[list[str]], np.ndarray],
+        encode_d_fn: Callable[[list[str]], np.ndarray],
+        ocr_fn: Callable[[list[Image.Image]], list[str]]
     ) -> None:
-        super().__init__(model_path)
+        self.encode_q_fn = encode_q_fn
+        self.encode_d_fn = encode_d_fn
 
-        self.file_reader = FileReader()
+        self.file_reader = FileReader(ocr_fn)
         self.graph_parser = GraphParser('__output__/binaries')
 
         self.graph: nx.Graph | None = None
         self.doc_emb: np.ndarray | None = None
         self.node_ids: np.ndarray | None = None
     
-    def set_model(self):
-        self.model = SentenceTransformer(
-            self.model_path,
-            model_kwargs={
-                'dtype': torch.bfloat16,
-                'device_map': 'auto'
-            }
-        )
-        self.model = torch.compile(
-            self.model,
-            mode='max-autotune',
-            fullgraph=True
-        )
-    
-    def dispatch_model(self):
-        try:
-            del self.model
-        except Exception as e:
-            print(e)
-        gc.collect()
-        torch.cuda.empty_cache()
-
     def load_graph(self, f_path: str):
         graph_path = os.path.join(f_path, 'graph.pkl')
         emb_path = os.path.join(f_path, 'docs.pkl')
@@ -157,39 +101,70 @@ class GraphRetriver(ModelWrapper, Parser):
         with open(ids_path, 'rb') as f:
             self.node_ids = pickle.load(f)
 
-    @use_model_decorator
+    def __get_linked_type(self, node: str, t: TypeReturn):
+        assert self.graph is not None
+
+        res = []
+        visited = set()
+        for linked_node in self.graph[node]:
+            linked_data = self.graph.nodes[linked_node]
+            if linked_data['node_type'] == t and linked_data['text'] not in visited:
+                res.append(linked_data)
+                visited.add(linked_data['text'])
+        return res
+
+    def __collate_context(self, node_ids: str):
+        assert self.graph is not None
+
+        node = self.graph.nodes[node_ids]
+        res = []
+
+        for tag, type_ret, statement in collaters:
+            linked_data = self.__get_linked_type(node_ids, type_ret)
+
+            if statement is not None:
+                linked_data = [
+                    l
+                    for l in linked_data
+                    if statement(node, l)
+                ]
+
+            linked_data = '\n'.join((
+                l['text']
+                for l in linked_data
+            ))
+            res.append(f'<{tag}>\n{linked_data}\n</{tag}>')
+        return '\n'.join(res)
+
+    def get_document(self, node_ids: str):
+        assert  self.graph is not None
+
+        return f'''
+            <context>
+            {self.__collate_context(node_ids)}
+            </context>
+            <text>
+            {self.graph.nodes[node_ids]['text']}
+            </text>
+        '''.replace('\t', '')
+
     def vectorize_graph(self, graph: nx.Graph) -> Tuple[np.ndarray, np.ndarray]:
         node_ids = []
         node_texts = []
 
         for k, v in dict(graph.nodes.data()).items():
             node_ids.append(k)
-            node_texts.append(v.get('summary') or v['text'])
+            node_texts.append(v['text'])
 
         node_ids= np.array(node_ids)
-        node_texts= np.array(node_texts)
 
         return (
-            self.model.encode(
-                node_texts,
-                prompt_name='document',
-                batch_size=16,
-                show_progress_bar=True,
-                normalize_embeddings=True
+            self.encode_d_fn(
+                node_texts
             ),
             node_ids
         )
     
-    @use_model_decorator
-    def vectorize_search(self, query: str | List[str]) -> np.ndarray:
-        search_emb = self.model.encode(
-            query,
-            prompt_name='query',
-            normalize_embeddings=True
-        )
-
-        return search_emb
-
     def prepare_doc_file(
         self, 
         file_path: str, 
@@ -223,9 +198,8 @@ class GraphRetriver(ModelWrapper, Parser):
         self.graph_parser.add_edges(graph)
 
         if emb is None or node_ids is None:
-            self.set_model()
-            emb, node_ids = self.vectorize_graph(graph)
-            self.dispatch_model()
+            node_txt, node_ids = Retriver.get_ids_text(graph)
+            emb = self.encode_d_fn(node_txt)
 
         self.graph = graph
         self.doc_emb = emb
@@ -244,9 +218,13 @@ class GraphRetriver(ModelWrapper, Parser):
         file_path: str | None=None
     ):
         if not isinstance(query, np.ndarray):
-            query = self.vectorize_search(query)
+            query = self.encode_q_fn(query if isinstance(query, list) else [query])
         if self.graph is None:
             assert file_path is not None, "file_path must be provided if graph is not loaded."
+            self.prepare_doc_file(file_path)
+    
+        if self.graph is None:
+            assert file_path is not None
             self.prepare_doc_file(file_path)
         
         assert self.graph is not None, "Graph is not loaded after prepare_doc_file."
@@ -254,10 +232,28 @@ class GraphRetriver(ModelWrapper, Parser):
         assert self.node_ids is not None, "Node IDs are not loaded after prepare_doc_file."
 
         sims = self.doc_emb @ query
-        top_k_ids = np.argsort(sims).reshape(-1)[::-1][:5]
+        top_k_ids = np.argsort(sims).reshape(-1)[::-1][:2]
         top_k = self.node_ids[top_k_ids]
 
         return [
-            get_document(self.graph, e).strip()
+            self.get_document(e).strip()
             for e in top_k
         ]
+    
+    def get_data_by_neighbour(
+        self,
+        query: TypeReturn,
+        equation:  Callable[[Any], bool]
+    ) -> Generator[str, None, None]:        
+        assert self.graph is not None
+        assert self.doc_emb is not None
+        assert self.node_ids is not None
+
+        return (
+            self.graph.nodes[node_id]['text']
+            for node_id in self.graph
+            if self.graph.nodes[node_id]['node_type'] == query and any([
+                equation(n)
+                for n in self.__get_linked_type(node_id, TypeReturn.TEXT)
+            ])
+        )

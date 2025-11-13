@@ -1,6 +1,6 @@
 import numpy as np
 from enum import Enum
-from typing import List
+from typing import List, Callable, Any, Generator
 from pydantic import BaseModel
 
 
@@ -14,7 +14,7 @@ class TypeReturn(Enum):
 
 
 class RAGModel(BaseModel):
-    query: str
+    query: str = 'Какие существуют направления в философии?'
 
 
 class Parser:
@@ -23,4 +23,11 @@ class Parser:
         query: str | List[str] | np.ndarray,
         file_path: str | None=None
     ) -> List[str]:
+        raise NotImplementedError('Parser must implement this method one way or another')
+    
+    def get_data_by_neighbour(
+        self,
+        query: TypeReturn,
+        equation:  Callable[[Any], bool]
+    ) -> Generator[str, None, None]:
         raise NotImplementedError('Parser must implement this method one way or another')
