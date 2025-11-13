@@ -26,3 +26,9 @@ jobs:
 
       - name: Run tests
         run: uv run pytest
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          HUGGINGFACE_HUB_TOKEN: ${{ secrets.HUGGINGFACE_HUB_TOKEN }}
+          SUMMARY_MODEL: ${{ vars.SUMMARY_MODEL }}
+          OCR_MODEL: ${{ vars.OCR_MODEL }}
+          VECTORIZER_MODEL: ${{ vars.VECTORIZER_MODEL }}
