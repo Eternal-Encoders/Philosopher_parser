@@ -11,7 +11,6 @@ from PIL import Image
 from huggingface_hub import login
 from dotenv import load_dotenv
 
-
 load_dotenv()
 login(token=os.getenv('HUGGINGFACE_HUB_TOKEN'))
 

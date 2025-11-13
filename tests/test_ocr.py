@@ -6,7 +6,7 @@ from src.model_inf import OcrExec
 dotenv.load_dotenv()
 
 ocr = OcrExec(
-    os.environ['OPENROUTER_KEY'],
+    os.environ['OPENROUTER_API_KEY'],
     os.environ['OCR_MODEL']
 )
 images = [

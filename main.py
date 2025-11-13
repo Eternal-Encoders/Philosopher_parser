@@ -8,17 +8,17 @@ dotenv.load_dotenv()
 app = FastAPI()
 
 ocr = OcrExec(
-    os.environ['OPENROUTER_KEY'],
+    os.environ['OPENROUTER_API_KEY'],
     os.environ['OCR_MODEL']
 )
 vectorizer = VectorizerExec(
-    os.environ['HF_KEY'],
+    os.environ['HUGGINGFACE_HUB_TOKEN'],
     os.environ['VECTORIZER_MODEL']
 )
 
 parser = Retriver(
-    encode_q_fn=vectorizer.encode_text,
-    encode_d_fn=vectorizer.encode_text,
+    encode_q_fn=vectorizer.encode,
+    encode_d_fn=vectorizer.encode,
     ocr_fn=ocr.ocr
 )
 parser.load_graph('/__output__/binaries')
