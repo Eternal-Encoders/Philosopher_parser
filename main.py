@@ -18,10 +18,10 @@ vectorizer = VectorizerExec(
 
 parser = Retriver(
     encode_q_fn=vectorizer.encode_text,
-    encode_d_fn=vectorizer.encode,
+    encode_d_fn=vectorizer.encode_text,
     ocr_fn=ocr.ocr
 )
-parser.load_graph('./__output__/binaries')
+parser.load_graph('/__output__/binaries')
 
 conn = Connector(parser)
 
