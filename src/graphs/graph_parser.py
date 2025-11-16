@@ -71,6 +71,7 @@ class GraphParser:
         Инициализирует объект GraphParser.
         """
         self.output_dir = output_dir
+        os.makedirs(self.output_dir, exist_ok=True)
         self.graph_file_path = os.path.join(output_dir, 'graph.pkl')
         self.nodes_data_file_path = os.path.join(output_dir, 'nodes_data.pkl')
 

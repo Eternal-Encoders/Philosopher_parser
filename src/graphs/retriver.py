@@ -92,7 +92,8 @@ class Retriver(Parser):
         )
         self.graph_parser.add_edges(self.graph)
 
-        self.root_dir =  root_dir
+        self.root_dir = root_dir
+        os.makedirs(self.root_dir, exist_ok=True)
         self.doc_emb_path = os.path.join(root_dir, 'binaries', 'docs.pkl')
         self.nodes_ids_path = os.path.join(root_dir, 'binaries', 'ids.pkl')
 
@@ -140,7 +141,6 @@ class Retriver(Parser):
         """
         Сохраняет данные эмбеддинга в файл
         """
-        os.makedirs(self.root_dir, exist_ok=True)
         with open(self.doc_emb_path, 'wb') as f:
             pickle.dump(doc_emb, f)
         print(f'Эмбединг сохранен в {self.doc_emb_path}')

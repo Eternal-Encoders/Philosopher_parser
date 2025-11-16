@@ -102,6 +102,7 @@ class FileReader():
         self.ocr_fn = ocr_fn
 
         self.root_path = root_path
+        os.makedirs(self.root_path, exist_ok=True)
         self.md_path = os.path.join(root_path, 'study_fies.md')
         self.img_path = os.path.join(root_path, 'binaries', 'images.pkl')
 
