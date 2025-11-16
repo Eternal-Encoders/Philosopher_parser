@@ -21,12 +21,15 @@ summary_gen = SummaryExec(
 )
 
 parser = Retriver(
+    f_path='__input__/Учебник_философии_22_августа_ТюмГУ.docx',
     encode_q_fn=vectorizer.encode,
     encode_d_fn=vectorizer.encode,
     ocr_fn=ocr.ocr,
-    gen_summary_fn=summary_gen.generate_summary_text
+    gen_summary_fn=summary_gen.generate_summary_text,
+    text_field='text',
+    root_dir='__output__',
+    force_reload=False
 )
-parser.load_graph('/__output__/binaries')
 
 conn = Connector(parser)
 

@@ -20,8 +20,6 @@ def test_sum_single():
     assert isinstance(out, str)
     assert len(out) != 0
 
-    print(out)
-
 
 def test_sum():
     out = sum_exec.generate_summary(txt)
@@ -40,5 +38,3 @@ def test_sum():
         len(short) <= len(long)
         for short, long in zip(out, txt)
     ))
-
-    print(out)

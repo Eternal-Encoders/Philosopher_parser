@@ -20,6 +20,10 @@ prompts = {
 
 
 class VectorizerExec():
+    @staticmethod
+    def prepare_text(t: str, prompt_name='query'):
+        return prompts[prompt_name] + t if len(t)*2.6 < 2048 else t[:int(2048*2.6)]
+
     def __init__(
         self,
         hf_key: str,
@@ -33,7 +37,7 @@ class VectorizerExec():
 
     def encode_text(self, text: str, prompt_name='query') -> np.ndarray:
         out = self.client.embeddings.create(
-            input=prompts[prompt_name] + text,
+            input=VectorizerExec.prepare_text(text, prompt_name),
             model=self.name_or_path
         )
 
@@ -42,7 +46,7 @@ class VectorizerExec():
     def encode(self, texts: list[str], prompt_name='document'):
         out = self.client.embeddings.create(
             input=[
-                prompts[prompt_name] + t
+                VectorizerExec.prepare_text(t, prompt_name)
                 for t in texts
             ],
             model=self.name_or_path

@@ -42,7 +42,7 @@ class GraphParser:
         Преобразует список объектов ReaderImageOutput в словарь для быстрого доступа по имени изображения.
         """
         return {
-            'media/' + img.image_name: img
+            img.image_name: img
             for img in images
         }
 
@@ -64,7 +64,8 @@ class GraphParser:
     def __init__(
         self,
         output_dir: str,
-        gen_summary: Callable[[str], str]
+        gen_summary: Callable[[str], str],
+        generate_summary=False
     ) -> None:
         """
         Инициализирует объект GraphParser.
@@ -72,7 +73,9 @@ class GraphParser:
         self.output_dir = output_dir
         self.graph_file_path = os.path.join(output_dir, 'graph.pkl')
         self.nodes_data_file_path = os.path.join(output_dir, 'nodes_data.pkl')
+
         self.gen_summary = gen_summary
+        self.generate_summary = generate_summary
 
     def collate_f(
         self,
@@ -100,7 +103,7 @@ class GraphParser:
                     type_,
                     img_text,
                     imgs[img_path].image,
-                    summary=self.gen_summary(img_text)
+                    summary=self.gen_summary(img_text) if self.generate_summary else None
                 )
                 continue
 
@@ -114,7 +117,7 @@ class GraphParser:
                     last_type,
                     '\n'.join(temp),
                     None,
-                    summary=self.gen_summary('\n'.join(temp))
+                    summary=self.gen_summary('\n'.join(temp)) if self.generate_summary else None
                 )
                 temp = []
                 last_type = None
@@ -123,19 +126,18 @@ class GraphParser:
                     type_,
                     el,
                     None,
-                    summary=self.gen_summary(el)
+                    summary=self.gen_summary(el) if self.generate_summary else None
                 )
 
-    def text2graph(self, text: str, images: List[ReaderImageOutput]):
+    def text2graph(self, text: str, images: List[ReaderImageOutput], force_reload=False) -> nx.Graph:
         """
         Преобразует входной текст и изображения в граф NetworkX.
         Если файл графа существует, загружает его. В противном случае создает новый граф и сохраняет его.
         """
-        if os.path.exists(self.graph_file_path):
-            with open(self.graph_file_path, 'rb') as f:
-                graph = pickle.load(f)
-            print(f'Граф загружен из {self.graph_file_path}')
-            return graph
+        if os.path.exists(self.graph_file_path) and not force_reload:
+            return self.load_data()
+        
+        self.clear_saved_data()
 
         image_base = GraphParser.to_imgs_base(images)
 
@@ -177,25 +179,21 @@ class GraphParser:
                 last_seen_ids.append((node_id, current_level))
 
         graph.remove_edges_from(nx.selfloop_edges(graph))
-        
-        # Сохранение графа после создания
-        os.makedirs(os.path.dirname(self.graph_file_path), exist_ok=True)
-        with open(self.graph_file_path, 'wb') as f:
-            pickle.dump(graph, f)
-        print(f'Граф сохранен в {self.graph_file_path}')
 
-        with open(self.nodes_data_file_path, 'wb') as f:
-            pickle.dump(
-                [
-                    {
-                        'id': k,
-                        **v
-                    }
-                    for k, v in dict(graph.nodes.data()).items()
-                ],
-                f
-            )
-        print(f'Данные узлов сохранены в {self.nodes_data_file_path}')
+        self.save_data(graph)
+
+        # with open(self.nodes_data_file_path, 'wb') as f:
+        #     pickle.dump(
+        #         [
+        #             {
+        #                 'id': k,
+        #                 **v
+        #             }
+        #             for k, v in dict(graph.nodes.data()).items()
+        #         ],
+        #         f
+        #     )
+        # print(f'Данные узлов сохранены в {self.nodes_data_file_path}')
     
         return graph
     
@@ -223,6 +221,24 @@ class GraphParser:
 
         return graph
     
+    def load_data(self):
+        """
+        Загружает сохранённый граф
+        """
+        with open(self.graph_file_path, 'rb') as f:
+            graph = pickle.load(f)
+        print(f'Граф загружен из {self.graph_file_path}')
+        return graph
+
+    def save_data(self, graph: nx.Graph):
+        """
+        Сохраняет данные графа в файл
+        """
+        os.makedirs(os.path.dirname(self.graph_file_path), exist_ok=True)
+        with open(self.graph_file_path, 'wb') as f:
+            pickle.dump(graph, f)
+        print(f'Граф сохранен в {self.graph_file_path}')
+
     def clear_saved_data(self):
         """
         Удаляет сохраненные файлы графа и эмбеддингов.
@@ -233,15 +249,3 @@ class GraphParser:
         if os.path.exists(self.nodes_data_file_path):
             os.remove(self.nodes_data_file_path)
             print(f"Файл данных узлов удален: {self.nodes_data_file_path}")
-
-        # Также нужно удалить файлы эмбеддингов, которые сохраняются в retriver.py
-        # Предполагаем, что они находятся в той же директории, что и GRAPH_FILE_PATH
-        emb_path = os.path.join(self.output_dir, 'docs.pkl')
-        ids_path = os.path.join(self.output_dir, 'ids.pkl')
-
-        if os.path.exists(emb_path):
-            os.remove(emb_path)
-            print(f'Файл эмбеддингов удален: {emb_path}')
-        if os.path.exists(ids_path):
-            os.remove(ids_path)
-            print(f'Файл ID узлов удален: {ids_path}')

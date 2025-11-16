@@ -21,8 +21,6 @@ def test_ocr_single():
     assert isinstance(out, str)
     assert len(out) != 0
 
-    print(out)
-
 
 def test_ocr():
     out = ocr.ocr(images)  #type: ignore
@@ -37,5 +35,3 @@ def test_ocr():
         for o in out
     ))
     assert len(images) == len(out)
-
-    print(out)
