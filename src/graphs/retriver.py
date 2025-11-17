@@ -132,7 +132,7 @@ class Retriver(Parser):
         """
         with open(self.doc_emb_path, 'rb') as f:
             doc_emb = pickle.load(f)
-        with open(self.doc_emb_path, 'rb') as f:
+        with open(self.nodes_ids_path, 'rb') as f:
             node_ids = pickle.load(f)
         
         return doc_emb, node_ids
@@ -206,9 +206,10 @@ class Retriver(Parser):
         file_path: str | None=None
     ):
         if not isinstance(query, np.ndarray):
-            query = self.encode_q_fn(query if isinstance(query, list) else [query])
+            # Пока временное решение, пока передаем по одному запросу
+            query = self.encode_q_fn(query if isinstance(query, list) else [query]).reshape(-1)
 
-        sims = self.doc_emb @ query
+        sims = np.einsum('ij,j->i', self.doc_emb, query)
         top_k_ids = np.argsort(sims).reshape(-1)[::-1][:2]
         top_k = self.node_ids[top_k_ids]
 
