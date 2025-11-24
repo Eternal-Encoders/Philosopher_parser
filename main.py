@@ -1,7 +1,7 @@
 import os
 import dotenv
 from fastapi import FastAPI
-from src import Retriver, Connector, RAGModel
+from src import Retriver, RAGModel
 from src.model_inf import VectorizerExec, OcrExec, SummaryExec
 
 dotenv.load_dotenv()
@@ -31,8 +31,6 @@ parser = Retriver(
     force_reload=False
 )
 
-conn = Connector(parser)
-
 
 @app.get('/')
 async def root():
@@ -41,10 +39,10 @@ async def root():
 
 @app.post('/rag')
 async def rag(data: RAGModel):
-    res = conn.get_docs(data.query)
+    res = parser.retrive_docs(data.query)
     return res
 
 
 @app.get('/questions')
 async def questions():
-    return conn.get_questions()
+    return parser.get_questions()
