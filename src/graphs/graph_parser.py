@@ -5,8 +5,7 @@ import os
 from uuid import uuid4
 from PIL import Image
 from typing import Callable, Iterable, List, Dict
-from .models import ReaderImageOutput, GraphCollatorOutput
-from ..models import TypeReturn
+from .models import ReaderImageOutput, GraphCollatorOutput, TypeReturn
 from itertools import combinations
 from tqdm import tqdm
 

@@ -1,3 +1,2 @@
-from .graphs import Retriver
-from .connector import Connector
-from .models import RAGModel, TypeReturn
+from .graphs import Retriver, TypeReturn
+from .models import RAGModel

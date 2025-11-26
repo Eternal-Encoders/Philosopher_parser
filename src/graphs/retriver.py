@@ -1,10 +1,11 @@
 import os
+import re
 import pickle
 import numpy as np
 import networkx as nx
+from .models import TypeReturn
 from .file_reader import FileReader
 from .graph_parser import GraphParser
-from ..models import Parser, Parser, TypeReturn
 from typing import Tuple, Generator, Callable, Any, List
 from PIL import Image
 
@@ -47,7 +48,7 @@ collaters = [
 ]
 
 
-class Retriver(Parser):
+class Retriver():
     @staticmethod
     def get_ids_text(graph: nx.Graph, text_field='text') -> Tuple[list[str], np.ndarray]:
         node_ids = []
@@ -90,7 +91,7 @@ class Retriver(Parser):
             imgs,
             force_reload=force_reload
         )
-        self.graph_parser.add_edges(self.graph)
+        self.graph_parser.add_edges(self.graph, window_size=3)
 
         self.root_dir = root_dir
         os.makedirs(self.root_dir, exist_ok=True)
@@ -199,35 +200,38 @@ class Retriver(Parser):
             {self.graph.nodes[node_ids]['text']}
             </text>
         '''.replace('\t', '')
-        
+
+    def get_similar(self, query: np.ndarray):
+        sims = np.einsum('ij,j->i', self.doc_emb, query)
+        top_k_ids = np.argsort(sims).reshape(-1)[::-1][:2]
+        top_k = self.node_ids[top_k_ids]
+
+        return top_k
+
     def retrive_docs(
         self,
-        query: str | List[str] | np.ndarray,
-        file_path: str | None=None
+        query: str | List[str] | np.ndarray
     ):
         if not isinstance(query, np.ndarray):
             # Пока временное решение, пока передаем по одному запросу
             query = self.encode_q_fn(query if isinstance(query, list) else [query]).reshape(-1)
 
-        sims = np.einsum('ij,j->i', self.doc_emb, query)
-        top_k_ids = np.argsort(sims).reshape(-1)[::-1][:2]
-        top_k = self.node_ids[top_k_ids]
-
         return [
             self.get_document(e).strip()
-            for e in top_k
+            for e in self.get_similar(query)
         ]
     
-    def get_data_by_neighbour(
-        self,
-        query: TypeReturn,
-        equation:  Callable[[Any], bool]
-    ) -> Generator[str, None, None]:
-        return (
-            self.graph.nodes[node_id]['text']
+    def get_questions(self):
+        lists = {
+            re.sub(r'^(\d+.)+ ', '', e)
             for node_id in self.graph
-            if self.graph.nodes[node_id]['node_type'] == query and any([
-                equation(n)
+            if self.graph.nodes[node_id]['node_type'] == TypeReturn.LIST and any([
+                ('вопросы для обсуждения' in n['text'].lower() or \
+                    'контрольные вопросы' in n['text'].lower() or \
+                    'задание' in n['text'].lower()) and self.graph.nodes[node_id]['position'] - n['position'] <= 1
                 for n in self.__get_linked_type(node_id, TypeReturn.TEXT)
             ])
-        )
+            for e in self.graph.nodes[node_id]['text'].split('\n')
+        }
+
+        return lists

@@ -1,6 +1,15 @@
 from PIL.Image import Image
 from dataclasses import dataclass
-from ..models import TypeReturn
+from enum import Enum
+
+
+class TypeReturn(Enum):
+    HEADING='heading'
+    TEXT='text'
+    TABLE='table'
+    LIST='list'
+    IMAGE='image'
+    FOOTNOTE='footnote'
 
 
 @dataclass
