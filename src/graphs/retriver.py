@@ -95,6 +95,7 @@ class Retriver():
 
         self.root_dir = root_dir
         os.makedirs(self.root_dir, exist_ok=True)
+
         self.doc_emb_path = os.path.join(root_dir, 'binaries', 'docs.pkl')
         self.nodes_ids_path = os.path.join(root_dir, 'binaries', 'ids.pkl')
 

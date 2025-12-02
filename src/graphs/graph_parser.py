@@ -1,13 +1,16 @@
 import re
-import pickle
-import networkx as nx
 import os
-from uuid import uuid4
+import pickle
+
+import networkx as nx
+
 from PIL import Image
+from tqdm import tqdm
+from uuid import uuid4
+from copy import deepcopy
+from itertools import combinations
 from typing import Callable, Iterable, List, Dict
 from .models import ReaderImageOutput, GraphCollatorOutput, TypeReturn
-from itertools import combinations
-from tqdm import tqdm
 
 re2enum = {
     r'^#+ .+': TypeReturn.HEADING,
@@ -59,6 +62,30 @@ class GraphParser:
             return -1, s
 
         return len(match.group().strip()), re.sub(level_str, '', s)
+
+    @staticmethod
+    def enum2value(graph: nx.Graph):
+        graph = deepcopy(graph)
+        new_data = {}
+        for n in graph:
+            new_data.update({
+                n: graph.nodes[n]['node_type'].value
+            })
+        
+        nx.set_node_attributes(graph, new_data, 'node_type')
+        return graph
+    
+    @staticmethod
+    def value2enum(graph: nx.Graph):
+        graph = deepcopy(graph)
+        new_data = {}
+        for n in graph:
+            new_data.update({
+                n: TypeReturn(graph.nodes[n]['node_type'])
+            })
+        
+        nx.set_node_attributes(graph, new_data, 'node_type')
+        return graph
 
     def __init__(
         self,
@@ -228,7 +255,7 @@ class GraphParser:
         with open(self.graph_file_path, 'rb') as f:
             graph = pickle.load(f)
         print(f'Граф загружен из {self.graph_file_path}')
-        return graph
+        return GraphParser.value2enum(graph)
 
     def save_data(self, graph: nx.Graph):
         """
@@ -236,7 +263,7 @@ class GraphParser:
         """
         os.makedirs(os.path.dirname(self.graph_file_path), exist_ok=True)
         with open(self.graph_file_path, 'wb') as f:
-            pickle.dump(graph, f)
+            pickle.dump(GraphParser.enum2value(graph), f)
         print(f'Граф сохранен в {self.graph_file_path}')
 
     def clear_saved_data(self):

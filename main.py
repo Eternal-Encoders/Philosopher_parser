@@ -2,20 +2,24 @@ import os
 import dotenv
 from fastapi import FastAPI
 from src import Retriver, RAGModel
+from fastapi.responses import FileResponse
 from src.model_inf import VectorizerExec, OcrExec, SummaryExec
 
 dotenv.load_dotenv()
 app = FastAPI()
 
 ocr = OcrExec(
+    os.environ['OCR_ENDPOINT'],
     os.environ['OPENROUTER_API_KEY'],
     os.environ['OCR_MODEL']
 )
 vectorizer = VectorizerExec(
+    os.environ['VECTORIZER_ENDPOINT'],
     os.environ['HUGGINGFACE_HUB_TOKEN'],
     os.environ['VECTORIZER_MODEL']
 )
 summary_gen = SummaryExec(
+    os.environ['SUMMARY_ENDPOINT'],
     os.environ['OPENROUTER_API_KEY'],
     os.environ['SUMMARY_MODEL']
 )
@@ -46,3 +50,8 @@ async def rag(data: RAGModel):
 @app.get('/questions')
 async def questions():
     return parser.get_questions()
+
+@app.get('/document')
+async def document():
+    return FileResponse(parser.file_reader.md_path)
+

@@ -7,10 +7,12 @@ from src.model_inf import OcrExec, SummaryExec
 load_dotenv()
 
 ocr = OcrExec(
+    os.environ['OCR_ENDPOINT'],
     os.environ['OPENROUTER_API_KEY'],
     os.environ['OCR_MODEL']
 )
 summary_gen = SummaryExec(
+    os.environ['SUMMARY_ENDPOINT'],
     os.environ['OPENROUTER_API_KEY'],
     os.environ['SUMMARY_MODEL']
 )

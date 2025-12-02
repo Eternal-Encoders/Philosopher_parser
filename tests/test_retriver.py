@@ -7,14 +7,17 @@ from src.model_inf import OcrExec, VectorizerExec, SummaryExec
 load_dotenv()
 
 ocr = OcrExec(
+    os.environ['OCR_ENDPOINT'],
     os.environ['OPENROUTER_API_KEY'],
     os.environ['OCR_MODEL']
 )
 vectorizer = VectorizerExec(
+    os.environ['VECTORIZER_ENDPOINT'],
     os.environ['HUGGINGFACE_HUB_TOKEN'],
     os.environ['VECTORIZER_MODEL']
 )
 summary_gen = SummaryExec(
+    os.environ['SUMMARY_ENDPOINT'],
     os.environ['OPENROUTER_API_KEY'],
     os.environ['SUMMARY_MODEL']
 )
