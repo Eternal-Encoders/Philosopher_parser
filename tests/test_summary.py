@@ -5,6 +5,7 @@ from src.model_inf import SummaryExec
 dotenv.load_dotenv()
 
 sum_exec = SummaryExec(
+    os.environ['SUMMARY_ENDPOINT'],
     os.environ['OPENROUTER_API_KEY'],
     os.environ['SUMMARY_MODEL']
 )

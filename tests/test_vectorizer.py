@@ -6,6 +6,7 @@ from src.model_inf import VectorizerExec
 dotenv.load_dotenv()
 
 vectorizer = VectorizerExec(
+    os.environ['VECTORIZER_ENDPOINT'],
     os.environ['HUGGINGFACE_HUB_TOKEN'],
     os.environ['VECTORIZER_MODEL']
 )

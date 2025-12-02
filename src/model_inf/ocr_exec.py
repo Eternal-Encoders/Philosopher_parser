@@ -27,13 +27,14 @@ class OcrExec():
 
     def __init__(
         self,
+        endpoint: str,
         openrouter_key: str,
         name_or_path: str,
         site_url: str | None=None,
         site_title: str | None=None
     ) -> None:
         self.client = OpenAI(
-            base_url='https://openrouter.ai/api/v1',
+            base_url=endpoint,
             api_key=openrouter_key,
         )
         self.name_or_path = name_or_path

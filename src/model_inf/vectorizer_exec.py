@@ -26,11 +26,12 @@ class VectorizerExec():
 
     def __init__(
         self,
+        endpoint: str,
         hf_key: str,
         name_or_path: str,
     ) -> None:
         self.client = OpenAI(
-            base_url='https://roaoch-vectorizer.hf.space/v1',
+            base_url=endpoint,
             api_key=hf_key,
         )
         self.name_or_path = name_or_path

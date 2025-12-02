@@ -6,6 +6,7 @@ from src.model_inf import OcrExec
 load_dotenv()
 
 ocr = OcrExec(
+    os.environ['OCR_ENDPOINT'],
     os.environ['OPENROUTER_API_KEY'],
     os.environ['OCR_MODEL']
 )
