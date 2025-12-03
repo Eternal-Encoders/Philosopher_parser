@@ -32,3 +32,6 @@ jobs:
           SUMMARY_MODEL: ${{ vars.SUMMARY_MODEL }}
           OCR_MODEL: ${{ vars.OCR_MODEL }}
           VECTORIZER_MODEL: ${{ vars.VECTORIZER_MODEL }}
+          SUMMARY_ENDPOINT: ${{ vars.SUMMARY_ENDPOINT }}
+          OCR_ENDPOINT: ${{ vars.OCR_ENDPOINT }}
+          VECTORIZER_ENDPOINT: ${{ vars.VECTORIZER_ENDPOINT }}
