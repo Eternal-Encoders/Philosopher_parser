@@ -1,8 +1,10 @@
 import os
 import dotenv
+from typing import List, Optional
 from fastapi import FastAPI
-from src import Retriver, RAGModel
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
+from src import Retriver, RAGModel
 from src.model_inf import VectorizerExec, OcrExec, SummaryExec
 
 dotenv.load_dotenv()
@@ -36,22 +38,50 @@ parser = Retriver(
 )
 
 
-@app.get('/')
-async def root():
-    return 'ok'
+# --------------------
+# Response Models
+# --------------------
+class StatusResponse(BaseModel):
+    status: str
 
 
-@app.post('/rag')
-async def rag(data: RAGModel):
-    res = parser.retrive_docs(data.query)
-    return res
+class RagResponse(BaseModel):
+    docs: List[str]
+    meta: Optional[dict] = None
 
 
-@app.get('/questions')
-async def questions():
-    return parser.get_questions()
+class QuestionItem(BaseModel):
+    text: str
 
-@app.get('/document')
+
+@app.get('/', response_model=StatusResponse, tags=["health"])
+async def root() -> StatusResponse:
+    return StatusResponse(status='ok')
+
+
+@app.post('/rag', response_model=RagResponse, tags=["rag"])
+async def rag(data: RAGModel) -> RagResponse:
+    docs = parser.retrive_docs(query=data.query, top_k=data.top_k)  # List[str]
+    res_docs = []
+    len_docs = 0
+    i = 0
+    while i < len(docs):
+        if len_docs <= data.max_length:
+            res_docs.append(docs[i])
+            len_docs += len(docs[i])
+            i += 1
+        else:
+            break
+    return RagResponse(docs=res_docs, meta=None)
+
+
+@app.get('/questions', response_model=List[QuestionItem], tags=["rag"])
+async def questions() -> List[QuestionItem]:
+    q = parser.get_questions()  # set[str]
+    return [QuestionItem(text=str(it)) for it in (q or [])]
+
+@app.get('/document', tags=["rag"])
 async def document():
-    return FileResponse(parser.file_reader.md_path)
-
+    path = parser.file_reader.md_path
+    filename = os.path.basename(path)
+    return FileResponse(path, media_type="text/markdown", filename=filename)
