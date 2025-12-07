@@ -99,7 +99,6 @@ class GraphParser:
         self.output_dir = output_dir
         os.makedirs(self.output_dir, exist_ok=True)
         self.graph_file_path = os.path.join(output_dir, 'graph.pkl')
-        self.nodes_data_file_path = os.path.join(output_dir, 'nodes_data.pkl')
 
         self.gen_summary = gen_summary
         self.generate_summary = generate_summary
@@ -208,19 +207,6 @@ class GraphParser:
         graph.remove_edges_from(nx.selfloop_edges(graph))
 
         self.save_data(graph)
-
-        # with open(self.nodes_data_file_path, 'wb') as f:
-        #     pickle.dump(
-        #         [
-        #             {
-        #                 'id': k,
-        #                 **v
-        #             }
-        #             for k, v in dict(graph.nodes.data()).items()
-        #         ],
-        #         f
-        #     )
-        # print(f'Данные узлов сохранены в {self.nodes_data_file_path}')
     
         return graph
     
@@ -273,6 +259,3 @@ class GraphParser:
         if os.path.exists(self.graph_file_path):
             os.remove(self.graph_file_path)
             print(f"Файл графа удален: {self.graph_file_path}")
-        if os.path.exists(self.nodes_data_file_path):
-            os.remove(self.nodes_data_file_path)
-            print(f"Файл данных узлов удален: {self.nodes_data_file_path}")
