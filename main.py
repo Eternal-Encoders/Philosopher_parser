@@ -74,6 +74,10 @@ async def rag(data: RAGModel) -> RagResponse:
             break
     return RagResponse(docs=res_docs, meta=None)
 
+@app.get("/health")
+async def health_check():
+    """Проверка здоровья сервера"""
+    return {"status": "healthy", "service": "philosopher-rag-api"}
 
 @app.get('/questions', response_model=List[QuestionItem], tags=["rag"])
 async def questions() -> List[QuestionItem]:
