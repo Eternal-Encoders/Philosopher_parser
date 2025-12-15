@@ -1,5 +1,7 @@
 import os
 import dotenv
+import uvicorn
+
 from fastapi import FastAPI
 from src import Retriver, RAGModel
 from fastapi.responses import FileResponse
@@ -55,3 +57,11 @@ async def questions():
 async def document():
     return FileResponse(parser.file_reader.md_path)
 
+
+if __name__ == '__main__':
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=80,
+        workers=1
+    )
