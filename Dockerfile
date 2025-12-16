@@ -24,7 +24,6 @@ RUN uv run nuitka main.py \
     --output-dir=dist \
     --lto=yes \
     --follow-imports \
-    --clang \
     --include-package-data=magika \
     --nofollow-import-to=pytest \
     --python-flag=nosite,-O \
