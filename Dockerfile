@@ -1,6 +1,6 @@
 FROM ubuntu:jammy AS builder
 
-RUN apt update -y && apt install patchelf build-essential --no-install-recommends -y
+RUN apt update -y && apt install patchelf build-essential clang --no-install-recommends -y
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
@@ -23,6 +23,9 @@ RUN uv run nuitka main.py \
     --onefile \
     --output-dir=dist \
     --lto=yes \
+    --follow-imports \
+    --clang \
+    --include-package-data=magika \
     --nofollow-import-to=pytest \
     --python-flag=nosite,-O \
     --plugin-enable=anti-bloat,implicit-imports,data-files,pylint-warnings
