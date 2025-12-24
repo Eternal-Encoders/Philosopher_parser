@@ -26,12 +26,6 @@ explicit = true
 [dependency-groups]
 dev = [
     "jupyter>=1.1.1",
-    "pandas>=2.3.2",
-    "qwen-vl-utils[decord]>=0.0.14",
-    "sentence-transformers>=5.1.2",
-    "torch>=2.9.0",
-    "torchvision>=0.24.0",
-    "transformers>=4.57.1",
 ]
 view = [
     "pyvis>=0.3.2",
