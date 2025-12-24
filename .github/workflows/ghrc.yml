@@ -1,0 +1,17 @@
+name: Latest Image
+
+on:
+    push:
+        branches:
+          - main
+
+jobs:
+    build_and_publish:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3
+            - name: Build an push an image
+              run: |
+                docker login --username Roaoch --password ${{ secrets.PACKAGER }} ghcr.io
+                docker build . --tag ghcr.io/eternal-encoders/philosopher-parser:latest
+                docker push ghcr.io/eternal-encoders/philosopher-parser:latest
