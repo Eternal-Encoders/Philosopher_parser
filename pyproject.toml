@@ -14,6 +14,8 @@ dependencies = [
     "pydantic>=2.12.3",
     "pytest>=9.0.0",
     "python-dotenv>=1.2.1",
+    "fastmcp>=2.14.1",
+    "mcp>=1.25.0",
 ]
 
 [[tool.uv.index]]
@@ -30,4 +32,8 @@ dev = [
     "torch>=2.9.0",
     "torchvision>=0.24.0",
     "transformers>=4.57.1",
+]
+view = [
+    "pyvis>=0.3.2",
+    "streamlit>=1.52.2",
 ]

@@ -202,16 +202,17 @@ class Retriver():
             </text>
         '''.replace('\t', '')
 
-    def get_similar(self, query: np.ndarray):
+    def get_similar(self, query: np.ndarray, top_k: int = 2) -> np.ndarray:
         sims = np.einsum('ij,j->i', self.doc_emb, query)
-        top_k_ids = np.argsort(sims).reshape(-1)[::-1][:2]
-        top_k = self.node_ids[top_k_ids]
+        top_k_ids = np.argsort(sims).reshape(-1)[::-1][:top_k]
+        top_k_nodes = self.node_ids[top_k_ids]
 
-        return top_k
+        return top_k_nodes
 
     def retrive_docs(
         self,
-        query: str | List[str] | np.ndarray
+        query: str | List[str] | np.ndarray,
+        top_k: int = 2
     ):
         if not isinstance(query, np.ndarray):
             # Пока временное решение, пока передаем по одному запросу
@@ -219,7 +220,7 @@ class Retriver():
 
         return [
             self.get_document(e).strip()
-            for e in self.get_similar(query)
+            for e in self.get_similar(query, top_k=top_k)
         ]
     
     def get_questions(self):
