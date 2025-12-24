@@ -1,90 +1,24 @@
 import os
-from fastmcp import FastMCP
-from mcp.types import TextContent
-import httpx
 import atexit
 import asyncio
+from fastmcp import FastMCP
+from mcp.types import TextContent
 from dotenv import load_dotenv
-
+from .rag_api_client import RAGAPIClient
 
 load_dotenv()
 
 # Создаем MCP сервер
-app = FastMCP(
-    name="Philosopher RAG Client",
-    # host="localhost",
-    port=8001,
+mcp_app = FastMCP(
+    name="Philosopher RAG Client"
 )
 
 # Конфигурация
 API_BASE_URL = os.environ.get("RAG_API_URL", "http://localhost:8000")
 API_TIMEOUT = 30
 
-class RAGAPIClient:
-    """Клиент для работы с RAG API"""
-    
-    def __init__(self, base_url: str = API_BASE_URL):
-        self.base_url = base_url.rstrip('/')
-        self.client = httpx.AsyncClient(timeout=API_TIMEOUT)
-    
-    async def search(self, query: str) -> dict:
-        """
-        Выполняет RAG поиск через API
-        
-        Args:
-            query: Поисковый запрос
-            
-        Returns:
-            Ответ от API в формате словаря
-        """
-        top_k = 3
-        max_length = 4000
-        try:
-            url = f"{self.base_url}/rag"
-            payload = {
-                "query": query,
-                "top_k": top_k,
-                "max_length": max_length
-            }
-            
-            response = await self.client.post(url, json=payload)
-            response.raise_for_status()
-            
-            return response.json()
-            
-        except httpx.ConnectError:
-            return {
-                "error": f"Не удалось подключиться к RAG API по адресу {self.base_url}",
-                "docs": ["Проверьте, запущен ли FastAPI сервер на порту 8000"],
-                "meta": {"status": "connection_error"}
-            }
-        except httpx.HTTPStatusError as e:
-            return {
-                "error": f"Ошибка API: {e.response.status_code}",
-                "docs": [f"Подробности: {e.response.text}"],
-                "meta": {"status": "http_error"}
-            }
-        except Exception as e:
-            return {
-                "error": f"Неизвестная ошибка: {str(e)}",
-                "docs": [],
-                "meta": {"status": "error"}
-            }
-    
-    async def health_check(self) -> bool:
-        """Проверяет доступность API"""
-        try:
-            response = await self.client.get(f"{self.base_url}/health")
-            return response.status_code == 200
-        except:
-            return False
-    
-    async def close(self):
-        """Закрывает HTTP клиент"""
-        await self.client.aclose()
-
 # Инициализируем клиент
-rag_client = RAGAPIClient()
+rag_client = RAGAPIClient(API_BASE_URL, API_TIMEOUT)
 
 # Функция для закрытия клиента при завершении
 def cleanup():
@@ -101,7 +35,7 @@ def cleanup():
 # Регистрируем функцию очистки
 atexit.register(cleanup)
 
-@app.tool(name='search')
+@mcp_app.tool(name='search')
 async def search(query: str) -> list[TextContent]:
     """
     Поиск философских текстов по запросу.
@@ -158,7 +92,7 @@ async def search(query: str) -> list[TextContent]:
     except Exception as e:
         return [TextContent(type="text", text=f"❌ Ошибка при поиске: {str(e)}")]
 
-@app.tool()
+@mcp_app.tool()
 async def check_api_status() -> list[TextContent]:
     """
     Проверить статус RAG API сервера.
@@ -183,8 +117,3 @@ async def check_api_status() -> list[TextContent]:
             )]
     except Exception as e:
         return [TextContent(type="text", text=f"❌ Ошибка проверки статуса: {str(e)}")]
-
-
-if __name__ == "__main__":
-    # Запускаем MCP сервер
-    app.run(transport="http")

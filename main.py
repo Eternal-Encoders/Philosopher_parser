@@ -1,14 +1,17 @@
 import os
 import dotenv
-from typing import List, Optional
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from src.mcp import mcp_app
 from pydantic import BaseModel
+from typing import List, Optional
 from src import Retriver, RAGModel
+from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 from src.model_inf import VectorizerExec, OcrExec, SummaryExec
 
 dotenv.load_dotenv()
-app = FastAPI()
+
+api_app = FastAPI(title='Parser API')
 
 ocr = OcrExec(
     os.environ['OCR_ENDPOINT'],
@@ -54,12 +57,12 @@ class QuestionItem(BaseModel):
     text: str
 
 
-@app.get('/', response_model=StatusResponse, tags=["health"])
+@api_app.get('/', response_model=StatusResponse, tags=["health"])
 async def root() -> StatusResponse:
     return StatusResponse(status='ok')
 
 
-@app.post('/rag', response_model=RagResponse, tags=["rag"])
+@api_app.post('/rag', response_model=RagResponse, tags=["rag"])
 async def rag(data: RAGModel) -> RagResponse:
     docs = parser.retrive_docs(query=data.query, top_k=data.top_k)  # List[str]
     res_docs = []
@@ -74,18 +77,39 @@ async def rag(data: RAGModel) -> RagResponse:
             break
     return RagResponse(docs=res_docs, meta=None)
 
-@app.get("/health")
+@api_app.get("/health")
 async def health_check():
     """Проверка здоровья сервера"""
     return {"status": "healthy", "service": "philosopher-rag-api"}
 
-@app.get('/questions', response_model=List[QuestionItem], tags=["rag"])
+@api_app.get('/questions', response_model=List[QuestionItem], tags=["rag"])
 async def questions() -> List[QuestionItem]:
     q = parser.get_questions()  # set[str]
     return [QuestionItem(text=str(it)) for it in (q or [])]
 
-@app.get('/document', tags=["rag"])
+@api_app.get('/document', tags=["rag"])
 async def document():
     path = parser.file_reader.md_path
     filename = os.path.basename(path)
     return FileResponse(path, media_type="text/markdown", filename=filename)
+
+
+mcp_app = mcp_app.http_app('/mcp')
+
+app = FastAPI(
+    title='Parser with MCP',
+    routes=[
+        *api_app.routes,
+        *mcp_app.routes
+    ],
+    lifespan=mcp_app.lifespan
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        '*'
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)

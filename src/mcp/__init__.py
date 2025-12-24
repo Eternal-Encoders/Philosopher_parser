@@ -1,0 +1,1 @@
+from .mcp_server import mcp_app

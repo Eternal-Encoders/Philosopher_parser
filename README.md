@@ -17,12 +17,7 @@ Start the Model Context Protocol server that exposes RAG tools (`search`). It ru
 
 Start MCP server for dev
 ```bash
-uv run fastmcp dev mcp_server.py
-```
-
-Start MCP server for dev
-```bash
-uv run fastmcp run mcp_server.py
+uv run fastmcp dev src/mcp/mcp_server.py
 ```
 
 **Run the Streamlit UI**
