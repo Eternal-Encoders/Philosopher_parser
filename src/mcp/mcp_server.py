@@ -23,7 +23,7 @@ rag_client = RAGAPIClient(API_BASE_URL, API_TIMEOUT)
 # Функция для закрытия клиента при завершении
 def cleanup():
     """Очистка ресурсов при завершении"""
-    print("\n🧹 Cleaning up resources...")
+    print("\nCleaning up resources...")
     try:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -55,7 +55,7 @@ async def search(query: str) -> list[TextContent]:
         
         # Проверяем наличие ошибок
         if "error" in result:
-            error_text = f"⚠️ Ошибка: {result['error']}\n\n"
+            error_text = f"Ошибка: {result['error']}\n\n"
             if result.get("docs"):
                 error_text += "Документы:\n" + "\n\n".join(result["docs"])
             return [TextContent(type="text", text=error_text)]
@@ -65,13 +65,13 @@ async def search(query: str) -> list[TextContent]:
         meta = result.get("meta", {})
         
         if not docs:
-            return [TextContent(type="text", text=f"📭 По запросу '{query}' ничего не найдено")]
+            return [TextContent(type="text", text=f"По запросу '{query}' ничего не найдено")]
         
         # Создаем форматированный ответ
         response_parts = []
         
         # Заголовок
-        response_parts.append(f"🔍 **Результаты поиска:** '{query}'")
+        response_parts.append(f"**Результаты поиска:** '{query}'")
         response_parts.append("---")
         
         # Документы
@@ -82,7 +82,7 @@ async def search(query: str) -> list[TextContent]:
         
         # Метаинформация
         if meta:
-            response_parts.append("📊 **Метаинформация:**")
+            response_parts.append("**Метаинформация:**")
             for key, value in meta.items():
                 response_parts.append(f"  • {key}: {value}")
         
@@ -90,7 +90,7 @@ async def search(query: str) -> list[TextContent]:
         return [TextContent(type="text", text=response_text)]
         
     except Exception as e:
-        return [TextContent(type="text", text=f"❌ Ошибка при поиске: {str(e)}")]
+        return [TextContent(type="text", text=f"Ошибка при поиске: {str(e)}")]
 
 @mcp_app.tool()
 async def check_api_status() -> list[TextContent]:
@@ -106,14 +106,14 @@ async def check_api_status() -> list[TextContent]:
         if is_healthy:
             return [TextContent(
                 type="text", 
-                text=f"✅ RAG API сервер доступен по адресу: {API_BASE_URL}\n\n"
+                text=f"RAG API сервер доступен по адресу: {API_BASE_URL}\n\n"
                      f"Для поиска используйте инструмент 'search_philosophy'"
             )]
         else:
             return [TextContent(
                 type="text",
-                text=f"⚠️ RAG API сервер недоступен по адресу: {API_BASE_URL}\n\n"
+                text=f"RAG API сервер недоступен по адресу: {API_BASE_URL}\n\n"
                      f"Убедитесь, что FastAPI сервер запущен."
             )]
     except Exception as e:
-        return [TextContent(type="text", text=f"❌ Ошибка проверки статуса: {str(e)}")]
+        return [TextContent(type="text", text=f"Ошибка проверки статуса: {str(e)}")]

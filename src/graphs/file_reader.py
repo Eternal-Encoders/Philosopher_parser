@@ -55,9 +55,9 @@ class FileReader():
                 base64.b64decode(uri)
             )
         )
-    
+
     @staticmethod
-    def retrive_images(text: str) -> list[ReaderImageOutput]:
+    def retrieve_images(text: str) -> list[ReaderImageOutput]:
         """
         Извлекает изображения из текста в формате base64 URI.
 
@@ -67,23 +67,29 @@ class FileReader():
         Returns:
             List[ReaderImageOutput]: Список объектов ReaderImageOutput, содержащих информацию об изображениях.
         """
-        iters = re.finditer(r'!\[.*\]\(.+\)', text)
+
+        pattern = r'!\[(?:[^\[\]])*?\]\((?:[^)]*?)\)'
+
+        iters = re.finditer(pattern, text)
         visited = set[str]()
         images = []
 
         for i, img_str in enumerate(iters):
             img_str = img_str.group()
-
             if img_str not in visited:
-                img  = FileReader.get_image(img_str)
-                img_name = f'media/image_{i}.png'
+                try:
+                    img = FileReader.get_image(img_str)
+                    img_name = f'media/image_{i}.png'
 
-                images.append(ReaderImageOutput(
-                    image_name=img_name,
-                    image=img,
-                    image_uri=img_str
-                ))
-                visited.add(img_str)
+                    images.append(ReaderImageOutput(
+                        image_name=img_name,
+                        image=img,
+                        image_uri=img_str
+                    ))
+                    visited.add(img_str)
+                except ValueError as e:
+                    print(f"Failed to process image {i}: {e}")
+                    continue
 
         return images
 
@@ -96,14 +102,14 @@ class FileReader():
         Инициализирует FileReader.
 
         Args:
-            ocr_fn (Callable[[List[Image.Image]], List[str]]): Функция для распознования изображения.
+            ocr_fn (Callable[[List[Image.Image]], List[str]]): Функция для распознавания изображения.
         """
         self.md = MarkItDown() 
         self.ocr_fn = ocr_fn
 
         self.root_path = root_path
         os.makedirs(self.root_path, exist_ok=True)
-        self.md_path = os.path.join(root_path, 'study_fies.md')
+        self.md_path = os.path.join(root_path, 'study_files.md')
         self.img_path = os.path.join(root_path, 'binaries', 'images.pkl')
 
     def read_markdown(self, file_path: str, force_reload=False):
@@ -126,7 +132,7 @@ class FileReader():
             file_path,
             keep_data_uris=True
         )
-        images = FileReader.retrive_images(result.text_content)
+        images = FileReader.retrieve_images(result.text_content)
 
         for i, tr in enumerate(self.ocr_fn([
             img.image
@@ -142,7 +148,7 @@ class FileReader():
         self.save_doc(txt, images)
 
         return txt, images
-    
+
     def load_doc(self) -> tuple[str, list[ReaderImageOutput]]:
         """
         Загружает сохраненный файл документа и изображений
@@ -151,12 +157,12 @@ class FileReader():
             txt = '\n'.join(f.readlines())
         with open(self.img_path, 'rb') as f:
             images = pickle.load(f)
-        
+
         return txt, images
-        
+
     def save_doc(self, txt: str, images: list[ReaderImageOutput]):
         """
-        Сохраняет в файл документв в формате Markdown и изображения
+        Сохраняет в файл документа в формате Markdown и изображения
         """
         with open(self.md_path, 'w', encoding='utf-8') as f:
             f.writelines(txt)
