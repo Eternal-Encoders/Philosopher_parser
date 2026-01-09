@@ -1,12 +1,11 @@
 name: Run Pytest
-run-name: ${{ github.actor }} is testing 🚀
 on:
     push:
         branches:
           - main
 
 jobs:
-  uv-example:
+  build:
     name: python
     runs-on: ubuntu-latest
 

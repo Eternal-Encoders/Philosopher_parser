@@ -1,15 +1,15 @@
 import os
+
 import dotenv
 import uvicorn
-
 from fastapi import FastAPI
-from src.mcp import mcp_app
-from pydantic import BaseModel
-from typing import List, Optional
-from src import Retriver, RAGModel
-from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from src.model_inf import VectorizerExec, OcrExec, SummaryExec
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
+
+from src import RAGModel, Retriver
+from src.mcp import mcp_app
+from src.model_inf import OcrExec, SummaryExec, VectorizerExec
 
 dotenv.load_dotenv()
 
@@ -51,8 +51,8 @@ class StatusResponse(BaseModel):
 
 
 class RagResponse(BaseModel):
-    docs: List[str]
-    meta: Optional[dict] = None
+    docs: list[str]
+    meta: dict | None = None
 
 
 class QuestionItem(BaseModel):
@@ -79,15 +79,18 @@ async def rag(data: RAGModel) -> RagResponse:
             break
     return RagResponse(docs=res_docs, meta=None)
 
+
 @api_app.get("/health")
 async def health_check():
     """Проверка здоровья сервера"""
     return {"status": "healthy", "service": "philosopher-rag-api"}
 
-@api_app.get('/questions', response_model=List[QuestionItem], tags=["rag"])
-async def questions() -> List[QuestionItem]:
+
+@api_app.get('/questions', response_model=list[QuestionItem], tags=["rag"])
+async def questions() -> list[QuestionItem]:
     q = parser.get_questions()  # set[str]
     return [QuestionItem(text=str(it)) for it in (q or [])]
+
 
 @api_app.get('/document', tags=["rag"])
 async def document():

@@ -2,7 +2,7 @@ from openai import OpenAI
 from tqdm.auto import tqdm
 
 
-class SummaryExec():
+class SummaryExec:
     def __init__(
         self,
         endpoint: str,
@@ -32,13 +32,19 @@ class SummaryExec():
             response = self.client.chat.completions.create(
                 model=self.name_or_path,
                 messages=[
-                    {"role": "user", "content": f"Сделай краткое саммари следующего текста: {text}"}
+                    {
+                        "role": "user",
+                        "content": f"Сделай краткое саммари \
+                            следующего текста: {text}"
+                    }
                 ],
                 temperature=0.7,
                 max_tokens=200,
             )
             summary_content = response.choices[0].message.content
-            return summary_content.strip() if summary_content else text[:100] + "..." if len(text) > 100 else text
+            return summary_content.strip() \
+                if summary_content \
+                else text[:100] + "..." if len(text) > 100 else text
         except Exception as e:
             print(f"Ошибка при генерации саммари с помощью LLM: {e}")
             return text[:100] + "..." if len(text) > 100 else text

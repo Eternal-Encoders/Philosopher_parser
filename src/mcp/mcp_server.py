@@ -1,9 +1,11 @@
-import os
-import atexit
 import asyncio
+import atexit
+import os
+
+from dotenv import load_dotenv
 from fastmcp import FastMCP
 from mcp.types import TextContent
-from dotenv import load_dotenv
+
 from .rag_api_client import RAGAPIClient
 
 load_dotenv()
@@ -29,7 +31,8 @@ def cleanup():
         asyncio.set_event_loop(loop)
         loop.run_until_complete(rag_client.close())
         loop.close()
-    except:
+    except Exception as e:
+        print(e)
         pass
 
 # Регистрируем функцию очистки
@@ -40,7 +43,8 @@ async def search(query: str) -> list[TextContent]:
     """
     Поиск философских текстов по запросу.
     
-    Этот инструмент использует внешний RAG API для поиска релевантных документов.
+    Этот инструмент использует внешний RAG API 
+    для поиска релевантных документов.
     
     Args:
         query: Ваш вопрос или тема для поиска
@@ -65,7 +69,12 @@ async def search(query: str) -> list[TextContent]:
         meta = result.get("meta", {})
         
         if not docs:
-            return [TextContent(type="text", text=f"📭 По запросу '{query}' ничего не найдено")]
+            return [
+                TextContent(
+                    type="text",
+                    text=f"📭 По запросу '{query}' ничего не найдено"
+                )
+            ]
         
         # Создаем форматированный ответ
         response_parts = []
@@ -90,7 +99,12 @@ async def search(query: str) -> list[TextContent]:
         return [TextContent(type="text", text=response_text)]
         
     except Exception as e:
-        return [TextContent(type="text", text=f"❌ Ошибка при поиске: {str(e)}")]
+        return [
+            TextContent(
+                type="text",
+                text=f"❌ Ошибка при поиске: {str(e)}"
+            )
+        ]
 
 @mcp_app.tool()
 async def check_api_status() -> list[TextContent]:
@@ -106,14 +120,21 @@ async def check_api_status() -> list[TextContent]:
         if is_healthy:
             return [TextContent(
                 type="text", 
-                text=f"✅ RAG API сервер доступен по адресу: {API_BASE_URL}\n\n"
-                     f"Для поиска используйте инструмент 'search_philosophy'"
+                text=f"✅ RAG API сервер \
+                    доступен по адресу: {API_BASE_URL}\n\n\
+                    Для поиска используйте инструмент 'search_philosophy'"
             )]
         else:
             return [TextContent(
                 type="text",
-                text=f"⚠️ RAG API сервер недоступен по адресу: {API_BASE_URL}\n\n"
-                     f"Убедитесь, что FastAPI сервер запущен."
+                text=f"⚠️ RAG API сервер \
+                    недоступен по адресу: {API_BASE_URL}\n\n\
+                    Убедитесь, что FastAPI сервер запущен."
             )]
     except Exception as e:
-        return [TextContent(type="text", text=f"❌ Ошибка проверки статуса: {str(e)}")]
+        return [
+            TextContent(
+                type="text",
+                text=f"❌ Ошибка проверки статуса: {str(e)}"
+            )
+        ]

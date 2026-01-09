@@ -1,16 +1,16 @@
-import re
 import os
 import pickle
-
-import networkx as nx
-
-from PIL import Image
-from tqdm import tqdm
-from uuid import uuid4
+import re
+from collections.abc import Callable, Iterable
 from copy import deepcopy
 from itertools import combinations
-from typing import Callable, Iterable, List, Dict
-from .models import ReaderImageOutput, GraphCollatorOutput, TypeReturn
+from uuid import uuid4
+
+import networkx as nx
+from PIL import Image
+from tqdm import tqdm
+
+from .models import GraphCollatorOutput, ReaderImageOutput, TypeReturn
 
 re2enum = {
     r'^#+ .+': TypeReturn.HEADING,
@@ -32,16 +32,18 @@ class GraphParser:
         """
         Определяет тип возвращаемого значения на основе входной строки.
         """
-        n = re.sub(r'(^[\*]+)|([\*]+$)', '', s)
         for k, v in re2enum.items():
-            if re.fullmatch(k, n) is not None:
+            if re.fullmatch(k, s) is not None:
                 return v
         return TypeReturn.TEXT
 
     @staticmethod
-    def to_imgs_base(images: List[ReaderImageOutput]) -> Dict[str, ReaderImageOutput]:
+    def to_imgs_base(
+        images: list[ReaderImageOutput]
+    ) -> dict[str, ReaderImageOutput]:
         """
-        Преобразует список объектов ReaderImageOutput в словарь для быстрого доступа по имени изображения.
+        Преобразует список объектов ReaderImageOutput в словарь для 
+        быстрого доступа по имени изображения.
         """
         return {
             img.image_name: img
@@ -51,7 +53,8 @@ class GraphParser:
     @staticmethod
     def get_level(s: str | Image.Image) -> tuple[int, str | Image.Image]:
         """
-        Определяет уровень заголовка или возвращает -1, если это изображение или не заголовок.
+        Определяет уровень заголовка или возвращает -1, если это изображение 
+        или не заголовок.
         """
         if isinstance(s, Image.Image):
             return -1, s
@@ -106,10 +109,11 @@ class GraphParser:
     def collate_f(
         self,
         reader: Iterable[str],
-        imgs: Dict[str, ReaderImageOutput]
+        imgs: dict[str, ReaderImageOutput]
     ) -> Iterable[GraphCollatorOutput]:
         """
-        Сопоставляет входные данные с объектами GraphCollatorOutput, обрабатывая изображения и многострочные типы.
+        Сопоставляет входные данные с объектами GraphCollatorOutput, 
+        обрабатывая изображения и многострочные типы.
         """
         last_type = None
         temp =  []
@@ -129,7 +133,9 @@ class GraphParser:
                     type_,
                     img_text,
                     imgs[img_path].image,
-                    summary=self.gen_summary(img_text) if self.generate_summary else None
+                    summary=self.gen_summary(img_text) \
+                        if self.generate_summary \
+                        else None
                 )
                 continue
 
@@ -143,7 +149,9 @@ class GraphParser:
                     last_type,
                     '\n'.join(temp),
                     None,
-                    summary=self.gen_summary('\n'.join(temp)) if self.generate_summary else None
+                    summary=self.gen_summary('\n'.join(temp)) \
+                        if self.generate_summary \
+                        else None
                 )
                 temp = []
                 last_type = None
@@ -152,13 +160,21 @@ class GraphParser:
                     type_,
                     el,
                     None,
-                    summary=self.gen_summary(el) if self.generate_summary else None
+                    summary=self.gen_summary(el) \
+                        if self.generate_summary \
+                        else None
                 )
 
-    def text2graph(self, text: str, images: List[ReaderImageOutput], force_reload=False) -> nx.Graph:
+    def text2graph(
+        self,
+        text: str,
+        images: list[ReaderImageOutput],
+        force_reload=False
+    ) -> nx.Graph:
         """
         Преобразует входной текст и изображения в граф NetworkX.
-        Если файл графа существует, загружает его. В противном случае создает новый граф и сохраняет его.
+        Если файл графа существует, загружает его. В противном случае 
+        создает новый граф и сохраняет его.
         """
         if os.path.exists(self.graph_file_path) and not force_reload:
             return self.load_data()
@@ -182,7 +198,12 @@ class GraphParser:
             level=-1
         )
 
-        for i, data in enumerate(tqdm(self.collate_f(text.split('\n'), image_base), desc="Creating graph nodes")):
+        for i, data in enumerate(
+            tqdm(
+                self.collate_f(text.split('\n'), image_base),
+                desc="Creating graph nodes"
+            )
+        ):
             current_level, line = GraphParser.get_level(data.text)
 
             node_id = str(uuid4())
@@ -192,11 +213,16 @@ class GraphParser:
                 text=line,
                 node_type=data.obj_type,
                 image=data.image,
-                level=current_level if current_level != -1 else last_seen_ids[-1][1],
+                level=current_level \
+                    if current_level != -1 \
+                    else last_seen_ids[-1][1],
                 summary=data.summary
             )
 
-            while current_level != -1 and last_seen_ids[-1][1] >= current_level:
+            while (
+                current_level != -1
+                and last_seen_ids[-1][1] >= current_level
+            ):
                 last_seen_ids.pop()
             
             graph.add_edge(last_seen_ids[-1][0], node_id)
@@ -224,8 +250,15 @@ class GraphParser:
         for id_ in tqdm(with_ancestors):
             nodes = list(graph[id_])
             for first_id, second_id in combinations(nodes, 2):
-                distance = abs(graph.nodes[first_id]['position'] - graph.nodes[second_id]['position'])
-                if first_id in with_ancestors or second_id in with_ancestors or distance > window_size:
+                distance = abs(
+                    graph.nodes[first_id]['position'] 
+                    - graph.nodes[second_id]['position']
+                )
+                if (
+                    first_id in with_ancestors
+                    or second_id in with_ancestors
+                    or distance > window_size
+                ):
                     continue
                 new_edge.append((first_id, second_id))
 

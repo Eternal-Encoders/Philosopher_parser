@@ -1,13 +1,15 @@
 import os
-import re
 import pickle
-import numpy as np
+import re
+from collections.abc import Callable
+
 import networkx as nx
-from .models import TypeReturn
+import numpy as np
+from PIL import Image
+
 from .file_reader import FileReader
 from .graph_parser import GraphParser
-from typing import Tuple, Generator, Callable, Any, List
-from PIL import Image
+from .models import TypeReturn
 
 collaters = [
     (
@@ -48,9 +50,12 @@ collaters = [
 ]
 
 
-class Retriver():
+class Retriver:
     @staticmethod
-    def get_ids_text(graph: nx.Graph, text_field='text') -> Tuple[list[str], np.ndarray]:
+    def get_ids_text(
+        graph: nx.Graph,
+        text_field='text'
+    ) -> tuple[list[str], np.ndarray]:
         node_ids = []
         node_texts = []
 
@@ -113,15 +118,23 @@ class Retriver():
     ) -> tuple[np.ndarray, np.ndarray]:
         """
         Векторизует входной граф
-        Если файл эмбеддинга существует, загружает его. В противном случае создает новый эмбеддинг и сохраняет его.
+        Если файл эмбеддинга существует, загружает его. 
+        В противном случае создает новый эмбеддинг и сохраняет его.
         """
-        if os.path.exists(self.doc_emb_path) and os.path.exists(self.nodes_ids_path) and not force_reload:
+        if (
+            os.path.exists(self.doc_emb_path)
+            and os.path.exists(self.nodes_ids_path)
+            and not force_reload
+        ):
             return self.load_data()
         
         self.clear_data()
 
         if emb is None or node_ids is None:
-            node_txt, node_ids = Retriver.get_ids_text(self.graph, text_field=text_field)
+            node_txt, node_ids = Retriver.get_ids_text(
+                self.graph,
+                text_field=text_field
+            )
             emb = self.encode_d_fn(node_txt)
         
         self.save_data(emb, node_ids)
@@ -166,7 +179,10 @@ class Retriver():
         visited = set()
         for linked_node in self.graph[node]:
             linked_data = self.graph.nodes[linked_node]
-            if linked_data['node_type'] == t and linked_data['text'] not in visited:
+            if (
+                linked_data['node_type'] == t
+                and linked_data['text'] not in visited
+            ):
                 res.append(linked_data)
                 visited.add(linked_data['text'])
         return res
@@ -180,15 +196,15 @@ class Retriver():
 
             if statement is not None:
                 linked_data = [
-                    l
-                    for l in linked_data
-                    if statement(node, l)
+                    data
+                    for data in linked_data
+                    if statement(node, data)
                 ]
 
-            linked_data = '\n'.join((
-                l['text']
-                for l in linked_data
-            ))
+            linked_data = '\n'.join(
+                data['text']
+                for data in linked_data
+            )
             res.append(f'<{tag}>\n{linked_data}\n</{tag}>')
         return '\n'.join(res)
 
@@ -211,12 +227,14 @@ class Retriver():
 
     def retrive_docs(
         self,
-        query: str | List[str] | np.ndarray,
+        query: str | list[str] | np.ndarray,
         top_k: int = 2
     ):
         if not isinstance(query, np.ndarray):
             # Пока временное решение, пока передаем по одному запросу
-            query = self.encode_q_fn(query if isinstance(query, list) else [query]).reshape(-1)
+            query = self.encode_q_fn(
+                query if isinstance(query, list) else [query]
+            ).reshape(-1)
 
         return [
             self.get_document(e).strip()
@@ -227,12 +245,21 @@ class Retriver():
         lists = {
             re.sub(r'^(\d+.)+ ', '', e)
             for node_id in self.graph
-            if self.graph.nodes[node_id]['node_type'] == TypeReturn.LIST and any([
-                ('вопросы для обсуждения' in n['text'].lower() or \
-                    'контрольные вопросы' in n['text'].lower() or \
-                    'задание' in n['text'].lower()) and self.graph.nodes[node_id]['position'] - n['position'] <= 1
-                for n in self.__get_linked_type(node_id, TypeReturn.TEXT)
-            ])
+            if (
+                self.graph.nodes[node_id]['node_type'] == TypeReturn.LIST
+                and any([
+                    (
+                        (
+                            'вопросы для обсуждения' in n['text'].lower()
+                            or 'контрольные вопросы' in n['text'].lower()
+                            or 'задание' in n['text'].lower()
+                        )
+                        and self.graph.nodes[node_id]['position']
+                        - n['position'] <= 1
+                    )
+                    for n in self.__get_linked_type(node_id, TypeReturn.TEXT)
+                ])
+            )
             for e in self.graph.nodes[node_id]['text'].split('\n')
         }
 

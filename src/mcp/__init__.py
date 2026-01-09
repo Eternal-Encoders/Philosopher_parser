@@ -1,1 +1,1 @@
-from .mcp_server import mcp_app
+from .mcp_server import mcp_app as mcp_app
