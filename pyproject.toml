@@ -16,12 +16,29 @@ dependencies = [
     "python-dotenv>=1.2.1",
     "fastmcp>=2.14.1",
     "mcp>=1.25.0",
+    "ruff>=0.14.11",
 ]
 
 [[tool.uv.index]]
 name = "pytorch-cu128"
 url = "https://download.pytorch.org/whl/cu128"
 explicit = true
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+]
 
 [dependency-groups]
 dev = [

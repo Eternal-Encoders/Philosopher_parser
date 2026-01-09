@@ -1,14 +1,15 @@
-import io
 import base64
+import io
 import json
-from openai import OpenAI
-from openai.types.chat import ChatCompletionMessageParam
-from tqdm.auto import tqdm
-from PIL import Image
 from typing import Any
 
+from openai import OpenAI
+from openai.types.chat import ChatCompletionMessageParam
+from PIL import Image
+from tqdm.auto import tqdm
 
-class OcrExec():
+
+class OcrExec:
     @staticmethod
     def pil2base64(img: Image.Image):
         buffered = io.BytesIO()
@@ -55,7 +56,8 @@ class OcrExec():
             'content': [
                 {
                     'type': 'text',
-                    'text': 'Translate image to text, save core meaning, include all text from image in your responce'
+                    'text': 'Translate image to text, save core meaning, \
+                        include all text from image in your responce'
                 },
                 {
                     'type': 'image_url',
@@ -69,10 +71,11 @@ class OcrExec():
     def ocr_image(self, img: Image.Image):
         completion = self.client.chat.completions.create(
             extra_headers=self.extra_headers,
-            extra_body={},
+            extra_body={'reasoning': {'enabled': False}},
             model=self.name_or_path,
             messages=[self.__get_msg(img)],
-            max_tokens=256
+            max_completion_tokens=1024,
+            temperature=0.01
         )
 
         return completion.choices[0].message.content

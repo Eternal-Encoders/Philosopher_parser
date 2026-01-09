@@ -1,6 +1,7 @@
-from PIL.Image import Image
 from dataclasses import dataclass
 from enum import Enum
+
+from PIL.Image import Image
 
 
 class TypeReturn(Enum):

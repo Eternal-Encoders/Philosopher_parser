@@ -1,6 +1,8 @@
 import os
+
 import dotenv
 from PIL import Image
+
 from src.model_inf import OcrExec
 
 dotenv.load_dotenv()
@@ -27,12 +29,12 @@ def test_ocr():
     out = ocr.ocr(images)  #type: ignore
     
     assert isinstance(out, list)
-    assert all((
+    assert all(
         isinstance(o, str)
         for o in out
-    ))
-    assert all((
+    )
+    assert all(
         len(o) != 0
         for o in out
-    ))
+    )
     assert len(images) == len(out)

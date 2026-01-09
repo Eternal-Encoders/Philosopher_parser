@@ -1,9 +1,11 @@
-"""Streamlit application to visualize parsed philosophical text graphs and their summaries.
+"""Streamlit application to visualize parsed philosophical text graphs 
+and their summaries.
 
 Run with:
     streamlit run streamlit_app.py
 
-The app loads pickled NetworkX graph and node data produced by the parsing pipeline:
+The app loads pickled NetworkX graph and node data produced by the 
+parsing pipeline:
     __output__/binaries/graph.pkl
     __output__/binaries/nodes_data.pkl
 
@@ -16,19 +18,20 @@ Features:
 - Download node data as JSON / CSV.
 """
 from __future__ import annotations
-import os
+
+import base64
 import io
 import json
+import os
 import pickle
-import base64
 from datetime import datetime
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import networkx as nx
 import streamlit as st
 import streamlit.components.v1 as components
-from pyvis.network import Network
 from PIL import Image
+from pyvis.network import Network
 
 GRAPH_FILE = os.path.join("__output__", "binaries", "graph.pkl")
 IDS_FILE = os.path.join("__output__", "binaries", "ids.pkl")
@@ -44,7 +47,9 @@ TYPE_COLOR_MAP = {
 
 
 def normalize_node_type(t: Any) -> str:
-    """Return a stable string type for nodes regardless of Enum/str representation.
+    """
+    Return a stable string type for nodes regardless of 
+    Enum/str representation.
     Examples:
       - TypeReturn.HEADING -> "heading"
       - "TypeReturn.HEADING" -> "heading"
@@ -62,33 +67,51 @@ def normalize_node_type(t: Any) -> str:
         return s.split(".")[-1].lower()
     return s.lower()
 
-def _file_fingerprint(path: str) -> Tuple[int, float]:
+
+def _file_fingerprint(path: str) -> tuple[int, float]:
     """Return (size, mtime) for invalidation purposes."""
     if not os.path.exists(path):
         return (0, 0.0)
     return (os.path.getsize(path), os.path.getmtime(path))
 
+
 @st.cache_data(show_spinner=False)
-def load_ids(path: str = IDS_FILE, fingerprint: Tuple[int, float] | None = None) -> List[Any]:
+def load_ids(
+    path: str = IDS_FILE,
+    fingerprint: tuple[int, float] | None = None
+) -> list[Any]:
     if not os.path.exists(path):
         return []
     with open(path, 'rb') as f:
         return pickle.load(f)
 
+
 @st.cache_resource(show_spinner=False)
-def load_graph(path: str = GRAPH_FILE, fingerprint: Tuple[int, float] | None = None) -> nx.Graph | None:
+def load_graph(
+    path: str = GRAPH_FILE,
+    fingerprint: tuple[int, float] | None = None
+) -> nx.Graph | None:
     if not os.path.exists(path):
         return None
     with open(path, 'rb') as f:
         return pickle.load(f)
 
-def nodes_from_graph(graph: nx.Graph, ids: List[Any] | None = None) -> List[Dict[str, Any]]:
-    """Construct nodes_data from graph nodes, optionally filtered/ordered by ids.
+
+def nodes_from_graph(
+    graph: nx.Graph,
+    ids: list[Any] | None = None
+) -> list[dict[str, Any]]:
+    """
+    Construct nodes_data from graph nodes, optionally filtered/ordered 
+    by ids.
     Format: [{'id': k, **v} for k, v in dict(graph.nodes.data()).items()].
     """
-    gdict: Dict[str, Dict[str, Any]] = {str(k): dict(v) for k, v in dict(graph.nodes.data()).items()}
+    gdict: dict[str, dict[str, Any]] = {
+        str(k): dict(v)
+        for k, v in dict(graph.nodes.data()).items()
+    }
     if ids is not None and len(ids) > 0:
-        result: List[Dict[str, Any]] = []
+        result: list[dict[str, Any]] = []
         for raw_id in ids:
             sid = str(raw_id)
             if sid in gdict:
@@ -98,20 +121,30 @@ def nodes_from_graph(graph: nx.Graph, ids: List[Any] | None = None) -> List[Dict
         return result
     return [{'id': k, **v} for k, v in gdict.items()]
 
-def load_artifacts() -> Tuple[nx.Graph | None, List[Dict[str, Any]], Tuple[int,float], Tuple[int,float]]:
+
+def load_artifacts() -> tuple[
+    nx.Graph | None,
+    list[dict[str, Any]],
+    tuple[int,float],
+    tuple[int,float]
+]:
     graph_fp = _file_fingerprint(GRAPH_FILE)
     ids_fp = _file_fingerprint(IDS_FILE)
     graph = load_graph(GRAPH_FILE, graph_fp)
     ids = load_ids(IDS_FILE, ids_fp)
-    nodes_data: List[Dict[str, Any]] = []
+    nodes_data: list[dict[str, Any]] = []
     if graph is not None:
         nodes_data = nodes_from_graph(graph, ids if len(ids) > 0 else None)
     nodes_fp = ids_fp if ids_fp != (0, 0.0) else graph_fp
     return graph, nodes_data, graph_fp, nodes_fp
 
-def compute_overview(nodes: List[Dict[str, Any]], graph: nx.Graph | None) -> Dict[str, Any]:
-    by_type: Dict[str, int] = {}
-    levels: List[int] = []
+
+def compute_overview(
+    nodes: list[dict[str, Any]],
+    graph: nx.Graph | None
+) -> dict[str, Any]:
+    by_type: dict[str, int] = {}
+    levels: list[int] = []
     for n in nodes:
         t = normalize_node_type(n.get('node_type'))
         by_type[t] = by_type.get(t, 0) + 1
@@ -127,7 +160,13 @@ def compute_overview(nodes: List[Dict[str, Any]], graph: nx.Graph | None) -> Dic
         'avg_level': sum(levels)/len(levels) if levels else None,
     }
 
-def node_passes_filters(node: Dict[str, Any], keyword: str, types: List[str], level_range: Tuple[int, int]) -> bool:
+
+def node_passes_filters(
+    node: dict[str, Any],
+    keyword: str,
+    types: list[str],
+    level_range: tuple[int, int]
+) -> bool:
     node_type = normalize_node_type(node.get('node_type'))
     if types and node_type not in types:
         return False
@@ -135,18 +174,21 @@ def node_passes_filters(node: Dict[str, Any], keyword: str, types: List[str], le
     if isinstance(lvl, int) and not (level_range[0] <= lvl <= level_range[1]):
         return False
     if keyword:
-        blob = (node.get('text', '') + ' ' + str(node.get('summary', ''))).lower()
+        blob = (
+            node.get('text', '') + ' ' + str(node.get('summary', ''))
+        ).lower()
         if keyword.lower() not in blob:
             return False
     return True
 
+
 @st.cache_data(show_spinner=False)
 def build_pyvis_html(
-    nodes_snapshot: Tuple[Tuple[str,str,int,str,str|None], ...],
-    edges_snapshot: Tuple[Tuple[str,str], ...],
+    nodes_snapshot: tuple[tuple[str,str,int,str,str|None], ...],
+    edges_snapshot: tuple[tuple[str,str], ...],
     keyword: str,
-    selected_types: Tuple[str, ...],
-    level_range: Tuple[int, int]
+    selected_types: tuple[str, ...],
+    level_range: tuple[int, int]
 ) -> str:
     """Cached HTML graph build based on immutable snapshots and filters."""
     # Reconstruct lightweight dict list for filtering
@@ -164,7 +206,13 @@ def build_pyvis_html(
         n['id'] for n in nodes_data
         if node_passes_filters(n, keyword, list(selected_types), level_range)
     }
-    net = Network(height="650px", width="100%", bgcolor="#FFFFFF", directed=False, notebook=False)
+    net = Network(
+        height="650px",
+        width="100%",
+        bgcolor="#FFFFFF",
+        directed=False,
+        notebook=False
+    )
     net.barnes_hut()
     for n in nodes_data:
         if n['id'] not in allowed_ids:
@@ -177,7 +225,10 @@ def build_pyvis_html(
         ]
         if n.get('summary'):
             summary = n['summary'] or ''
-            title_parts.append(f"<b>Summary:</b> {summary[:200]}{'…' if len(summary) > 200 else ''}")
+            title_parts.append(
+                f"<b>Summary:</b> \
+                    {summary[:200]}{'…' if len(summary) > 200 else ''}"
+            )
         color = TYPE_COLOR_MAP.get(n['node_type'], '#888888')
         net.add_node(
             n['id'],
@@ -192,8 +243,9 @@ def build_pyvis_html(
             net.add_edge(a, b)
     return net.generate_html()
 
-def make_graph_snapshots(graph: nx.Graph, nodes_data: List[Dict[str, Any]]):
-    nodes_snapshot_list: List[Tuple[str, str, int, str, str | None]] = []
+
+def make_graph_snapshots(graph: nx.Graph, nodes_data: list[dict[str, Any]]):
+    nodes_snapshot_list: list[tuple[str, str, int, str, str | None]] = []
     for n in nodes_data:
         nid = str(n['id'])
         ntype = normalize_node_type(n.get('node_type'))
@@ -201,14 +253,20 @@ def make_graph_snapshots(graph: nx.Graph, nodes_data: List[Dict[str, Any]]):
         lvl = int(lvl_raw) if isinstance(lvl_raw, int) else -1
         text = str(n.get('text', '') or '')
         summ_val = n.get('summary')
-        summary: str | None = str(summ_val) if isinstance(summ_val, str) else None
+        summary: str | None = str(summ_val) \
+            if isinstance(summ_val, str) \
+            else None
         nodes_snapshot_list.append((nid, ntype, lvl, text, summary))
     nodes_snapshot = tuple(nodes_snapshot_list)
     edges_snapshot = tuple((str(a), str(b)) for a, b in graph.edges())
     return nodes_snapshot, edges_snapshot
 
-def download_nodes(nodes: List[Dict[str, Any]], fmt: str) -> bytes:
-    """Return file bytes encoded in UTF-8 for JSON and UTF-8 with BOM for CSV (Excel-friendly)."""
+
+def download_nodes(nodes: list[dict[str, Any]], fmt: str) -> bytes:
+    """
+    Return file bytes encoded in UTF-8 
+    for JSON and UTF-8 with BOM for CSV (Excel-friendly).
+    """
     if fmt == 'json':
         # Pure UTF-8 without BOM (standard for JSON)
         return json.dumps(nodes, ensure_ascii=False, indent=2).encode('utf-8')
@@ -216,7 +274,11 @@ def download_nodes(nodes: List[Dict[str, Any]], fmt: str) -> bytes:
         # Add BOM via utf-8-sig so Excel on Windows opens Cyrillic correctly
         import csv
         output = io.StringIO(newline='')
-        fieldnames = sorted({k for n in nodes for k in n.keys()})
+        fieldnames = sorted({
+            k
+            for n in nodes
+            for k in n
+        })
         writer = csv.DictWriter(output, fieldnames=fieldnames)
         writer.writeheader()
         for n in nodes:
@@ -224,13 +286,19 @@ def download_nodes(nodes: List[Dict[str, Any]], fmt: str) -> bytes:
         return output.getvalue().encode('utf-8-sig')
     raise ValueError('Unsupported format')
 
+
 def image_to_base64(img: Image.Image) -> str:
     buf = io.BytesIO()
     img.save(buf, format='PNG')
     return base64.b64encode(buf.getvalue()).decode('utf-8')
 
+
 def main():
-    st.set_page_config(page_title="Philosopher Graph Explorer", layout="wide", page_icon="🧠")
+    st.set_page_config(
+        page_title="Philosopher Graph Explorer",
+        layout="wide",
+        page_icon="🧠"
+    )
     st.title("🧠 Philosopher Graph Explorer")
     st.caption("Explore parsed structure, summaries, and relationships.")
 
@@ -248,7 +316,10 @@ def main():
         nodes_data = nodes_data[:max_nodes]
 
     if graph is None or not nodes_data:
-        st.error("Graph or IDs not found. Please generate '__output__/binaries/graph.pkl' and 'ids.pkl'.")
+        st.error(
+            "Graph or IDs not found. \
+                Please generate '__output__/binaries/graph.pkl' and 'ids.pkl'."
+        )
         st.stop()
 
     overview = compute_overview(nodes_data, graph)
@@ -256,42 +327,82 @@ def main():
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("Nodes", overview['total_nodes'])
         col2.metric("Edges", overview['total_edges'])
-        col3.metric("Levels (min/max)", f"{overview['min_level']} / {overview['max_level']}")
+        col3.metric(
+            "Levels (min/max)",
+            f"{overview['min_level']} / {overview['max_level']}"
+        )
         avg_lvl = overview['avg_level']
-        col4.metric("Avg Level", f"{avg_lvl:.2f}" if avg_lvl is not None else "-")
+        col4.metric(
+            "Avg Level",
+            f"{avg_lvl:.2f}" if avg_lvl is not None else "-"
+        )
         st.write("**Type distribution**")
-        dist_cols = st.columns(len(overview['types'])) if overview['types'] else []
-        for (t, cnt), c in zip(overview['types'].items(), dist_cols):
+        dist_cols = st.columns(len(overview['types'])) \
+            if overview['types'] \
+            else []
+        for (t, cnt), c in zip(
+            overview['types'].items(),
+            dist_cols,
+            strict=True
+        ):
             c.metric(t, cnt)
         
         # Display file modification timestamps
         st.markdown("---")
         st.caption("**Data freshness:**")
         if graph_fp[1] > 0:
-            graph_time = datetime.fromtimestamp(graph_fp[1]).strftime('%Y-%m-%d %H:%M:%S')
+            graph_time = datetime.fromtimestamp(graph_fp[1]).strftime(
+                '%Y-%m-%d %H:%M:%S'
+            )
             st.caption(f"Graph: {graph_time}")
         if nodes_fp[1] > 0:
-            nodes_time = datetime.fromtimestamp(nodes_fp[1]).strftime('%Y-%m-%d %H:%M:%S')
+            nodes_time = datetime.fromtimestamp(nodes_fp[1]).strftime(
+                '%Y-%m-%d %H:%M:%S'
+            )
             st.caption(f"Nodes: {nodes_time}")
 
     st.sidebar.header("Filters")
-    all_types = sorted({normalize_node_type(n.get('node_type')) for n in nodes_data})
-    selected_types = st.sidebar.multiselect("Node types", all_types, default=all_types)
+    all_types = sorted(
+        {
+            normalize_node_type(n.get('node_type'))
+            for n in nodes_data
+        }
+    )
+    selected_types = st.sidebar.multiselect(
+        "Node types",
+        all_types,
+        default=all_types
+    )
 
-    min_lvl = overview['min_level'] if overview['min_level'] is not None else -1
-    max_lvl = overview['max_level'] if overview['max_level'] is not None else 5
-    level_range = st.sidebar.slider("Level range", min_lvl, max_lvl, (min_lvl, max_lvl))
+    min_lvl = overview['min_level'] \
+        if overview['min_level'] is not None \
+        else -1
+    max_lvl = overview['max_level'] \
+        if overview['max_level'] is not None \
+        else 5
+    level_range = st.sidebar.slider(
+        "Level range",
+        min_lvl,
+        max_lvl,
+        (min_lvl, max_lvl)
+    )
 
     keyword = st.sidebar.text_input("Keyword search (text/summary)")
 
     # Reset filters button
-    if st.sidebar.button("Сбросить фильтры", help="Вернуть все фильтры к начальным значениям"):
+    if st.sidebar.button(
+        "Сбросить фильтры",
+        help="Вернуть все фильтры к начальным значениям"
+    ):
         st.session_state.clear()
         st.rerun()
 
     st.sidebar.markdown("---")
     # Refresh caches and reload artifacts
-    if st.sidebar.button("Обновить граф", help="Очистить кэш и перечитать бинарные файлы графа"):
+    if st.sidebar.button(
+        "Обновить граф",
+        help="Очистить кэш и перечитать бинарные файлы графа"
+    ):
         try:
             st.cache_data.clear()
             st.cache_resource.clear()
@@ -308,7 +419,11 @@ def main():
             "Save file",
             data_bytes,
             file_name=f"nodes_data.{fmt}",
-            mime=("application/json; charset=utf-8" if fmt == 'json' else 'text/csv; charset=utf-8')
+            mime=(
+                "application/json; charset=utf-8"
+                if fmt == 'json'
+                else 'text/csv; charset=utf-8'
+            )
         )
 
     st.subheader("Interactive Graph")
@@ -336,13 +451,21 @@ def main():
     selected_node_id = st.selectbox("Select node", options=selectable_ids)
 
     if selected_node_id:
-        node_info = next((n for n in nodes_data if n['id'] == selected_node_id), None)
+        node_info = next(
+            (n for n in nodes_data if n['id'] == selected_node_id),
+            None
+        )
         if node_info:
-            st.markdown(f"**Type:** `{node_info.get('node_type')}` | **Level:** `{node_info.get('level')}` | **Position:** `{node_info.get('position')}`")
+            st.markdown(
+                f"**Type:** `{node_info.get('node_type')}` | \
+                    **Level:** `{node_info.get('level')}` | \
+                    **Position:** `{node_info.get('position')}`"
+            )
             st.markdown(f"**Text:**\n\n{node_info.get('text')}")
             if node_info.get('summary'):
                 st.markdown(f"**Summary:**\n\n> {node_info.get('summary')}")
-            # Image display if attached via graph (graph nodes store image object or None)
+            # Image display if attached via graph 
+            # (graph nodes store image object or None)
             gnode = graph.nodes.get(selected_node_id)
             if gnode and gnode.get('image') is not None:
                 img: Image.Image = gnode['image']
@@ -358,12 +481,19 @@ def main():
                     nd = graph.nodes[nid]
                     summary = nd.get('summary') or ''
                     text_val = nd.get('text') or ''
-                    st.markdown(f"- `{nid[:8]}` | *{nd.get('node_type')}* | {text_val[:80]}{'…' if len(text_val)>80 else ''}")
+                    st.markdown(
+                        f"- `{nid[:8]}` | \
+                            *{nd.get('node_type')}* | \
+                            {text_val[:80]}{'…' if len(text_val)>80 else ''}"
+                    )
                     if summary:
-                        st.caption(summary[:160] + ('…' if len(summary) > 160 else ''))
+                        st.caption(
+                            summary[:160] + ('…' if len(summary) > 160 else '')
+                        )
 
     st.markdown("---")
     st.caption("Data loaded from pickled artifacts. Re-run parser to refresh.")
+
 
 if __name__ == "__main__":
     main()

@@ -1,6 +1,8 @@
 import os
+
 import dotenv
 import numpy as np
+
 from src.model_inf import VectorizerExec
 
 dotenv.load_dotenv()

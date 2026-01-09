@@ -35,7 +35,8 @@ class RAGAPIClient:
             
         except httpx.ConnectError:
             return {
-                "error": f"Не удалось подключиться к RAG API по адресу {self.base_url}",
+                "error": f"Не удалось подключиться к RAG API \
+                    по адресу {self.base_url}",
                 "docs": ["Проверьте, запущен ли FastAPI сервер на порту 8000"],
                 "meta": {"status": "connection_error"}
             }
@@ -57,7 +58,8 @@ class RAGAPIClient:
         try:
             response = await self.client.get(f"{self.base_url}/health")
             return response.status_code == 200
-        except:
+        except Exception as e:
+            print(e)
             return False
     
     async def close(self):

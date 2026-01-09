@@ -1,8 +1,10 @@
 import os
+
 import numpy as np
 from dotenv import load_dotenv
+
 from src.graphs import Retriver
-from src.model_inf import OcrExec, VectorizerExec, SummaryExec
+from src.model_inf import OcrExec, SummaryExec, VectorizerExec
 
 load_dotenv()
 

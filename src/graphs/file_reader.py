@@ -1,17 +1,20 @@
-import os
-import re
 import base64
+import os
 import pickle
-from markitdown import MarkItDown
-from .models import ReaderImageOutput
-from PIL import Image
+import re
+from collections.abc import Callable
 from io import BytesIO
-from typing import Callable
+
+from markitdown import MarkItDown
+from PIL import Image
+
+from .models import ReaderImageOutput
 
 
-class FileReader():
+class FileReader:
     """
-    Класс для чтения файлов Markdown, извлечения изображений и получения их текстовых представлений с помощью модели Qwen2.5-VL-3B-Instruct.
+    Класс для чтения файлов Markdown, извлечения изображений и получения их 
+    текстовых представлений с помощью модели Qwen2.5-VL-3B-Instruct.
     """
 
     @staticmethod
@@ -20,11 +23,13 @@ class FileReader():
         imgs: list[ReaderImageOutput]
     ) -> str:
         """
-        Заменяет URI изображений в тексте на новые строки с переводами и именами файлов.
+        Заменяет URI изображений в тексте на новые строки с 
+        переводами и именами файлов.
 
         Args:
             text (str): Входной текст, содержащий URI изображений.
-            images (List[ReaderImageOutput]): Список объектов ReaderImageOutput, содержащих информацию об изображениях.
+            images (List[ReaderImageOutput]): Список объектов 
+            ReaderImageOutput, содержащих информацию об изображениях.
 
         Returns:
             str: Текст с замененными URI изображений.
@@ -38,10 +43,12 @@ class FileReader():
     @staticmethod
     def get_image(full_match: str) -> Image.Image:
         """
-        Декодирует URI изображения в формате base64 и возвращает объект PIL Image.
+        Декодирует URI изображения в формате base64 и возвращает объект 
+        PIL Image.
 
         Args:
-            full_match (str): Полная строка, содержащая URI изображения в формате base64.
+            full_match (str): Полная строка, содержащая URI изображения в 
+            формате base64.
 
         Returns:
             Image.Image: Объект PIL Image.
@@ -62,10 +69,12 @@ class FileReader():
         Извлекает изображения из текста в формате base64 URI.
 
         Args:
-            text (str): Входной текст, содержащий изображения в формате base64 URI.
+            text (str): Входной текст, содержащий изображения в формате 
+            base64 URI.
 
         Returns:
-            List[ReaderImageOutput]: Список объектов ReaderImageOutput, содержащих информацию об изображениях.
+            List[ReaderImageOutput]: Список объектов ReaderImageOutput, 
+            содержащих информацию об изображениях.
         """
         iters = re.finditer(r'!\[.*\]\(.+\)', text)
         visited = set[str]()
@@ -96,7 +105,8 @@ class FileReader():
         Инициализирует FileReader.
 
         Args:
-            ocr_fn (Callable[[List[Image.Image]], List[str]]): Функция для распознования изображения.
+            ocr_fn (Callable[[List[Image.Image]], List[str]]): Функция для 
+            распознования изображения.
         """
         self.md = MarkItDown() 
         self.ocr_fn = ocr_fn
@@ -108,16 +118,24 @@ class FileReader():
 
     def read_markdown(self, file_path: str, force_reload=False):
         """
-        Читает файл Markdown, извлекает изображения, получает их текстовые представления и заменяет URI изображений в тексте.
-        Если файлы существуют, загружает их. В противном случае создает новые объекты и сохраняет их.
+        Читает файл Markdown, извлекает изображения, получает их 
+        текстовые представления и заменяет URI изображений в тексте.
+        Если файлы существуют, загружает их. В противном случае создает 
+        новые объекты и сохраняет их.
 
         Args:
             file_path (str): Путь к файлу Markdown.
 
         Returns:
-            Tuple[str, List[ReaderImageOutput]]: Кортеж, содержащий текст Markdown с замененными URI изображений и список объектов ReaderImageOutput.
+            Tuple[str, List[ReaderImageOutput]]: Кортеж, содержащий 
+            текст Markdown с замененными URI изображений и 
+            список объектов ReaderImageOutput.
         """
-        if os.path.exists(self.md_path) and os.path.exists(self.img_path) and not force_reload:
+        if (
+            os.path.exists(self.md_path) and 
+            os.path.exists(self.img_path) and 
+            not force_reload
+        ):
             return self.load_doc()
 
         self.clear_saved_data()
@@ -147,7 +165,7 @@ class FileReader():
         """
         Загружает сохраненный файл документа и изображений
         """
-        with open(self.md_path, 'r', encoding='utf-8') as f:
+        with open(self.md_path, encoding='utf-8') as f:
             txt = '\n'.join(f.readlines())
         with open(self.img_path, 'rb') as f:
             images = pickle.load(f)

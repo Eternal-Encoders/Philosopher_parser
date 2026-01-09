@@ -19,10 +19,12 @@ prompts = {
 }
 
 
-class VectorizerExec():
+class VectorizerExec:
     @staticmethod
     def prepare_text(t: str, prompt_name='query'):
-        return prompts[prompt_name] + t if len(t)*2.6 < 2048 else t[:int(2048*2.6)]
+        return prompts[prompt_name] + t \
+            if len(t)*2.6 < 2048 \
+            else t[:int(2048*2.6)]
 
     def __init__(
         self,

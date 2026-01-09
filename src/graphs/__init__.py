@@ -1,4 +1,4 @@
-from .file_reader import FileReader
-from .graph_parser import GraphParser
-from .retriver import Retriver
-from .models import TypeReturn
+from .file_reader import FileReader as FileReader
+from .graph_parser import GraphParser as GraphParser
+from .models import TypeReturn as TypeReturn
+from .retriver import Retriver as Retriver
