@@ -19,11 +19,11 @@ COPY src src
 COPY main.py .
 
 RUN uv run nuitka main.py \
-    --standalone \
     --onefile \
+    --clang \
     --output-dir=dist \
-    --lto=yes \
     --follow-imports \
+    --include-package=lupa \
     --include-package-data=magika \
     --nofollow-import-to=pytest \
     --python-flag=nosite,-O \
