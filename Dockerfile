@@ -18,13 +18,17 @@ RUN uv sync --no-dev
 COPY src src
 COPY main.py .
 
+RUN touch dummy.txt
+
 RUN uv run nuitka main.py \
     --onefile \
     --clang \
     --output-dir=dist \
     --follow-imports \
-    --include-package=lupa \
+    --include-package=lupa,fakeredis \
     --include-package-data=magika \
+    --include-data-files=.venv/lib/python3.12/site-packages/fakeredis/commands.json=fakeredis/commands.json \
+    --include-data-files=dummy.txt=fakeredis/model/commands.json \
     --nofollow-import-to=pytest \
     --python-flag=nosite,-O \
     --plugin-enable=anti-bloat,implicit-imports,data-files,pylint-warnings
