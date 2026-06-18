@@ -22,7 +22,6 @@ RUN touch dummy.txt
 
 RUN uv run nuitka main.py \
     --onefile \
-    --clang \
     --output-dir=dist \
     --follow-imports \
     --include-package=lupa,fakeredis \
