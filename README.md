@@ -32,6 +32,16 @@
 - GitHub Action проверки линтером **Ruff**.
 - GitHub Action создания образа для развертывания **Docker** **Nuitka**.
 
+GhRPC:
+```bash
+docker pull ghcr.io/eternal-encoders/philosopher-parser:latest
+```
+
+DocckerHub:
+```bash
+docker pull roacoh/philosophy_parser:latest
+```
+
 ## Project Structure
 
 ```
